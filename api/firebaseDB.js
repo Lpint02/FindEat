@@ -1,6 +1,7 @@
 // Importa le librerie necessarie da Firebase
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+  import { FIREBASE_API_KEY } from .config.js
  
   // Configurazione del tuo progetto Firebase
   const firebaseConfig = {
