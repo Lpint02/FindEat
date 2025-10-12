@@ -1,0 +1,269 @@
+#map { height: 100vh; width: 100%; }
+ 
+    #status {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-family: sans-serif;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 999;
+    }
+ 
+    /* Modal carosello */
+    #photoModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+ 
+    #photoModalContent {
+      position: relative;
+      background: #222;
+      border-radius: 12px;
+      width: 95%;
+      height: 92%;
+      overflow: hidden;
+      padding: 18px;
+      color: rgb(255, 255, 255);
+    }
+ 
+    /* Modal grid: left foto, right dettagli + recensioni */
+    .modal-grid {
+      display: flex;
+      gap: 18px;
+      height: 100%;
+    }
+
+    .modal-left {
+      flex: 1 1 55%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-right {
+      flex: 1 1 45%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+      background: #ffffff; /* sezione chiara */
+      color: #111; /* testi neri */
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .photo-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg,#000,#222); /* scuro solo dietro le foto */
+      border-radius: 10px;
+      padding: 8px;
+    }
+
+    #photoModalContent img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      display: block;
+    }
+ 
+    /* close-inline usato dentro header-row */
+    .close-inline {
+      font-size: 40px;
+      font-weight: 700;
+      color: #111;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      line-height: 1;
+      /* Remove absolute positioning */
+      position: relative;
+      align-self: flex-start;
+      margin-left: auto;
+      z-index: 2050;
+    }
+ 
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 40px;
+      background: rgba(0,0,0,0.3);
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 5px 12px;
+      border-radius: 5px;
+      z-index: 10;
+    }
+    #prevPhoto { left: 10px; }
+    #nextPhoto { right: 10px; }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+  .title-wrap { display:flex; align-items:center; gap:8px; }
+
+    .header-actions { display:flex; align-items:center; gap:8px; }
+
+    .like-btn {
+      background: transparent;
+      border: 1px solid #ddd;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      color: #111;
+    }
+
+      .details {
+      font-size: 15px;
+      line-height: 1.4;
+      color: #111;
+      overflow: auto;
+      /* occupa spazio fisso, recensioni useranno il resto */
+      flex: 0 0 auto;
+      max-height: 220px; /* più spazio iniziale per i dettagli */
+      transition: max-height 0.25s ease;
+    }
+
+    .reviews-container {
+      background: transparent;
+      padding: 0;
+      border-radius: 8px;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0; /* important for flex overflow */
+      margin-top: 12px; /* sposta un po' in basso il placeholder recensioni */
+      transition: all 0.25s ease;
+    }
+
+    .reviews-header {
+      font-weight:600;
+      cursor:pointer;
+      user-select:none;
+      padding: 6px 0;
+      color: #111;
+    }
+
+    .reviews-list {
+      overflow-y: auto;
+      padding-right: 6px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: max-height 0.25s ease, flex 0.25s ease;
+      /* Occupa tutto lo spazio disponibile nella colonna destra */
+      flex: 1 1 auto;
+      max-height: none;
+    }
+
+    .reviews-container.collapsed .reviews-list {
+      max-height: 0;
+      overflow: hidden;
+      flex: 0 0 0;
+    }
+
+    .reviews-container:not(.collapsed) .reviews-list {
+      flex: 1 1 auto;
+    }
+
+    .review {
+        background: #f6f6f6;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #111;
+        border: 1px solid #e6e6e6;
+      }
+
+    .rating {
+        font-size: 16px;
+        color: #111;
+        font-weight: 700;
+        background: none;
+      }
+
+    /* Stelle nel header recensioni */
+    #stars { display:inline-block; vertical-align:middle; margin-right:8px; margin-left: 8px;}
+    .star { display:inline-block; vertical-align:middle; font-size:22px; margin-right:6px; line-height:1; }
+
+    /* Font uniforme per dettagli e recensioni */
+      /* Font uniforme per dettagli, header e recensioni */
+      .modal-right, .modal-right h2, .details, .review, .reviews-header, .header-actions, .like-btn {
+        font-family: 'Poppins', sans-serif;
+      }
+
+      .modal-right h2 { font-size: 22px; margin: 0; font-weight: 600; color: #111; }
+      .like-btn { font-size: 18px; font-weight: 500; }
+
+      /* Responsive: regola la posizione della 'X' su schermi piccoli per evitare sovrapposizioni */
+      @media (max-width: 800px) {
+        .close-inline { top: 8px; right: 10px; font-size: 36px; }
+        .title-wrap { gap:6px; }
+        .title-wrap .like-btn { margin-left:4px; }
+      }
+
+      /* Opening hours 7-day grid */
+      .hours-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: 6px;
+        margin-top: 8px;
+        width: 100%;
+      }
+      .hours-box {
+        background: #fafafa;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        padding: 6px;
+        text-align: center;
+        font-size: 12px;
+        color: #111;
+      }
+      .hours-day { font-weight: 700; margin-bottom: 4px; }
+      .hours-interval { color: #333; font-size: 12px; }
+
+      @media (max-width: 800px) {
+        .hours-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+      }
+      @media (max-width: 480px) {
+        .hours-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+        .hours-box { padding: 8px; font-size: 11px; }
+      }
+
+      /* Expanded reviews state: hide details and let reviews occupy most of modal-right */
+      .reviews-container.expanded { flex: 1 1 100%; }
+      .modal-right .details.details-hidden { display: none; }
+      .reviews-container.expanded .reviews-list { flex: 1 1 100%; max-height: none; overflow-y: auto; }
+
+    /* Responsive: su schermi piccoli impila a colonna */
+    @media (max-width: 800px) {
+      .modal-grid { flex-direction: column; }
+      .modal-left, .modal-right { flex-basis: auto; }
+      #photoModalContent { width: 98%; height: 96%; padding: 12px; }
+    }
