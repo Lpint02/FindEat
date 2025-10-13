@@ -1,7 +1,6 @@
 import { initMap } from "./map/mapInit.js";
 import { createRestaurantMarker } from "./map/markerManager.js";
-import { showModalWithData } from "./ui/modal.js";
-import { getDocumentById, saveDocumentWithId } from "./api/firebaseDB.js";
+
 
 const statusDiv = document.getElementById("status");
 

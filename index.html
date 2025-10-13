@@ -53,14 +53,15 @@
 
   <!-- Librerie -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBzT6vHeUg-xJnFgEBKJl8RaBykqzt7yx8&libraries=places"></script>
 
   <!-- Entry point modulare -->
   <script type="module">
       import { GOOGLE_MAPS_API_KEY } from './config.js';
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
+      script.async = true;
+      script.defer = true;
       document.head.appendChild(script);
     import '/main.js';
   </script>

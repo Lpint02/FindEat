@@ -1,11 +1,11 @@
 // Importa le librerie necessarie da Firebase
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-  import { FIREBASE_API_KEY } from "./config.js"
+  import { FIREBASE_API_KEY } from "../config.js"
  
   // Configurazione del tuo progetto Firebase
   const firebaseConfig = {
-    apiKey: FIREBASE_API_KEY,
+    apiKey: FIREBASE_API_KEY ,
     authDomain: "findeat-ae5f9.firebaseapp.com",
     projectId: "findeat-ae5f9",
     storageBucket: "findeat-ae5f9.firebasestorage.app",
