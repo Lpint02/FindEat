@@ -1,5 +1,3 @@
-import { CONFIG } from "../config.js";
-
 export async function fetchRestaurants(lat, lon, radius = 10000) {
   const query = `
     [out:json][timeout:30];
