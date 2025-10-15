@@ -26,6 +26,8 @@ export function renderOpeningHoursHTML(opening) {
     'Sunday': ['Sunday','Sun','Domenica','Dom']
   };
 
+  const todayIndex = new Date().getDay(); // 0=Sunday
+  const todayKey = todayIndex === 0 ? 'Sunday' : daysOrder[todayIndex - 1];
   const boxes = daysOrder.map(day => {
     let found = null;
     for (const k in dayMap) {
@@ -36,7 +38,8 @@ export function renderOpeningHoursHTML(opening) {
     }
     let display = 'Chiuso';
     if (found) display = /chiuso|closed/i.test(found) ? 'Chiuso' : found.replace(/–/g,'-');
-    return `<div class="hours-box"><div class="hours-day">${displayNames[day]}</div><div class="hours-interval">${display}</div></div>`;
+    const todayClass = day === todayKey ? ' today' : '';
+    return `<div class="hours-box${todayClass}"><div class="hours-day">${displayNames[day]}</div><div class="hours-interval">${display}</div></div>`;
   }).join('');
 
   return `<div class="hours-grid">${boxes}</div>`;

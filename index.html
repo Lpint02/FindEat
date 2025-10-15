@@ -8,46 +8,43 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="status">📍 Recupero la tua posizione...</div>
-  <div id="map"></div>
+  <div id="layout">
+    <aside id="leftPanel" aria-live="polite">
+      <!-- Vista lista (default quando nessun ristorante è selezionato) -->
+      <div id="listView"></div>
 
-  <!-- Modal dettaglio ristorante -->
-  <div id="photoModal" role="dialog" aria-modal="true" aria-labelledby="photoTitle" tabindex="-1">
-    <div id="photoModalContent">
-      <div class="modal-grid">
-        <div class="modal-left">
-          <div class="photo-wrapper">
-            <img id="currentPhoto" src="" alt="Foto ristorante">
-            <p id="noPhotoMsg" style="display:none;">😕 Nessuna foto trovata per questo ristorante.</p>
+      <!-- Vista dettagli (mostrata quando si seleziona un ristorante) -->
+  <div id="detailView" class="hidden">
+        <div class="dp-photo-area">
+          <div class="hero-overlay">
+            <div class="hero-top-bar">
+              <button id="dpBackToList" type="button" class="back-btn hero-btn" aria-label="Torna alla lista">←</button>
+              <button id="dpLikeBtn" class="like-btn hero-btn" title="Mi piace">♡</button>
+            </div>
+            <h2 id="dpTitle" class="hero-title"></h2>
           </div>
-          <button id="prevPhoto" class="carousel-btn" type="button" aria-label="Foto precedente">&#10094;</button>
-          <button id="nextPhoto" class="carousel-btn" type="button" aria-label="Foto successiva">&#10095;</button>
+          <img id="dpCurrentPhoto" src="" alt="Foto ristorante" />
+          <p id="dpNoPhotoMsg" style="display:none;">😕 Nessuna foto trovata per questo ristorante.</p>
+          <button id="dpPrevPhoto" class="carousel-btn" type="button" aria-label="Foto precedente">&#10094;</button>
+          <button id="dpNextPhoto" class="carousel-btn" type="button" aria-label="Foto successiva">&#10095;</button>
         </div>
 
-        <div class="modal-right">
-          <div class="header-row">
-            <div class="title-wrap">
-              <h2 id="photoTitle"></h2>
-              <button id="likeBtn" class="like-btn" title="Mi piace" style="margin-left:8px;">♡</button>
-            </div>
-            <div class="header-actions">
-              <button id="closeModal" type="button" aria-label="Chiudi" title="Chiudi" class="close-inline">×</button>
-            </div>
-          </div>
+        <div id="dpDetails" class="details"></div>
 
-          <div id="photoDetails" class="details"></div>
-
-          <div id="reviewsContainer" class="reviews-container collapsed">
-            <div id="reviewsHeader" class="reviews-header">
-              Recensioni 
-              <span id="reviewsCount" class="reviews-count"></span> 
-              <span id="reviewsArrow">▸</span>
-              <span id="stars" class="stars"></span>
-            </div>
-            <div id="reviewsList" class="reviews-list" aria-hidden="true"></div>
+        <div class="dp-reviews reviews-container" id="dpReviewsContainer">
+          <div class="reviews-header" id="dpReviewsHeader">
+            <span class="section-label">Recensioni</span>
+            <span id="dpRatingNumber" class="rating-number"></span>
+            <span id="dpStars" class="stars"></span>
+            <span id="dpReviewsCount" class="reviews-count"></span>
           </div>
+          <div class="reviews-list" id="dpReviewsList" aria-hidden="true"></div>
         </div>
       </div>
+    </aside>
+
+    <div id="map" role="region" aria-label="Mappa dei ristoranti">
+      <div id="status">📍 Recupero la tua posizione...</div>
     </div>
   </div>
 

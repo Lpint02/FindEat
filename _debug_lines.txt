@@ -1,0 +1,1 @@
+Potential issue patching style.css due to duplicated grep results (maybe hidden characters).

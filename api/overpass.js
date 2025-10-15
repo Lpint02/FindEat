@@ -8,7 +8,7 @@ export async function fetchRestaurants(lat, lon, radius = 10000) {
     );
     out center;
   `;
-  const res = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: query, timeout: 45000 });
+  const res = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: query, timeout: 50000 });
   const data = await res.json();
   return data.elements || [];
 }
