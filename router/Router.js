@@ -1,8 +1,13 @@
-export class Router 
+
+export default class Router 
 {
   //costruttore
   constructor(rootId) {
     this.root = document.getElementById(rootId);
+    console.log(this.root);
+    if (!this.root) {
+      throw new Error(`Elemento con id "${rootId}" non trovato nel DOM.`);
+    }
     this.routes = {};        // path -> { html, css: [..], view }
     this.currentCss = [];    
     this.#registerPopState();
@@ -12,6 +17,7 @@ export class Router
   addRoute(path, config) {
     // config: { html: "pages/login.html", css: ["css/login.css"], view: LoginView }
     this.routes[path] = config;
+    console.log(`Rotta registrata: ${path}`, config);
   }
 
   // metodo per navigare a una rotta
@@ -23,17 +29,21 @@ export class Router
   // metodo privato per caricare una rotta
   async #loadRoute(path) {
     const route = this.routes[path];
+    
     if (!route) {
       this.root.innerHTML = "<h2>404 - Pagina non trovata</h2>";
+      console.warn(`Rotta non trovata: ${path}`);
       return;
     }
-
+    console.log(`Caricamento rotta: ${path}`, route);
+    
     // carica e applica CSS della rotta (rimuove CSS della rotta precedente)
     this.#unloadCurrentCss();
     if (Array.isArray(route.css)) {
       await Promise.all(route.css.map(href => this.#loadCss(href)));
     }
-
+    console.log("CSS caricati:", this.currentCss);
+    
     // fetcha la pagina HTML
     const resp = await fetch(route.html, { cache: "no-cache" });
     if (!resp.ok) {
@@ -42,16 +52,17 @@ export class Router
     }
     const html = await resp.text();
     this.root.innerHTML = html;  // è qui che l'HTML viene inserito nel DOM
-
+    console.log(window.location.pathname);
+    /*
     // 3) inizializza la view (se fornita)
     if (route.view) {
-      // view può accettare il router come dipendenza: new route.view(this, /* altri service */)
+      // view può accettare il router come dipendenza: new route.view(this, altri service)
       const view = route.view(this);
       if (view && typeof view.init === "function") {
         // view.init() viene chiamato dopo che l'HTML è stato inserito nel DOM
         view.init();
       }
-    }
+    }*/
   }
 
     // metodo privato per caricare un file CSS
@@ -94,6 +105,9 @@ export class Router
 
     // metodo per inizializzare il router (carica la rotta corrente)
   init() {
+    console.log("Router init:", window.location.pathname);
     this.#loadRoute(window.location.pathname);
   }
 }
+
+
