@@ -51,18 +51,23 @@ export default class Router
       return;
     }
     const html = await resp.text();
+    this.root.innerHTML =""; // pulisce il contenuto precedente
     this.root.innerHTML = html;  // è qui che l'HTML viene inserito nel DOM
     console.log(window.location.pathname);
-    /*
-    // 3) inizializza la view (se fornita)
+    console.log("view:", route.view);
+    // inizializza la view (se fornita)
     if (route.view) {
       // view può accettare il router come dipendenza: new route.view(this, altri service)
       const view = route.view(this);
+      console.log("View creata:", view);
       if (view && typeof view.init === "function") {
         // view.init() viene chiamato dopo che l'HTML è stato inserito nel DOM
         view.init();
       }
-    }*/
+    }
+    else{
+      console.warn("NON SI é CREATA LA VIEW!")
+    }
   }
 
     // metodo privato per caricare un file CSS

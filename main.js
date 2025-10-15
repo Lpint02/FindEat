@@ -1,4 +1,6 @@
 import Router from "./router/Router.js";
+import LoginView from "./view/VLogin.js";
+import HomeView from "./view/Vhome.js";
 
 // Service (accesso ai dati, API, Firebase, ecc.)
 //import AuthService from "./service/AuthService.js";
@@ -17,18 +19,26 @@ export const router = new Router("app"); // <main id="app"></main> di index.html
 router.addRoute("/", {
     html: "/pages/login.html",
     css: ["/CSS/login.css"],
+    view: (routerInstance) => {
+      const view = new LoginView();
+      view.router = routerInstance;
+      //const presenter = new LoginPresenter(view, authService, routerInstance);
+      //view.presenter = presenter;
+      return view;
+    }
 });
-/*
+
 router.addRoute("/home", {
   html: "/pages/home.html",
-  css: ["/css/home.css"],
-  createView: (routerInstance) => {
+  css: ["/CSS/home.css"],
+  view: (routerInstance) => {
     const view = new HomeView();
-    const presenter = new HomePresenter(view, authService, routerInstance);
-    view.presenter = presenter;
+    view.router = routerInstance;
+    //const presenter = new HomePresenter(view, authService, routerInstance);
+    //view.presenter = presenter;
     return view;
   }
-});*/
+});
 
 // --- Avvio dell’app ---
 router.init();
