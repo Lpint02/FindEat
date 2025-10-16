@@ -1,4 +1,4 @@
-import { OverpassService } from "../servicies/overpass.js";
+import OverpassService from "../servicies/overpass.js";
 
 export default class HomeController 
 {
@@ -9,7 +9,7 @@ export default class HomeController
   async findrestaurants(radius, lat, lon)
   {
     const service = new OverpassService();
-    result = service.findRestaurants(radius, lat, lon);
+    const result = await service.findRestaurants(radius, lat, lon);
     return result;
   }
 }

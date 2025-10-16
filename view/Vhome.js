@@ -1,8 +1,9 @@
-import { createRestaurantMarker, selectedIcon, defaultIcon } from "./map/markerManager.js";
-import { renderRestaurantList } from "./ui/listPanel.js";
-import { renderDetailPanel, showListPanel } from "./ui/detailPanel.js";
-import { haversineKm } from "./map/geo.js";
-import { HomeController } from "../controller/Chome.js"
+import * as L from 'https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js';
+import { createRestaurantMarker, selectedIcon, defaultIcon } from "../map/markerManager.js";
+import { renderRestaurantList } from "./listPanel.js";
+import { renderDetailPanel, showListPanel } from "./detailPanel.js";
+import { haversineKm } from "../map/geo.js";
+import HomeController from "../controller/Chome.js"
 
 export default class HomeView 
 {
@@ -32,6 +33,7 @@ export default class HomeView
 
   async #showMap(pos) 
   {   
+    const statusDiv = document.getElementById("status");
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
     // raggio d'azione in metri
@@ -59,9 +61,9 @@ export default class HomeView
     // Se in futuro riattivi le coordinate reali, puoi usare watchPosition per aggiornarlo
     this.#watchUserPosition(userMarker);
 
-    this.controller= new HomeController(self);
-    const data=this.controller.findrestaurants(radius,lat,lon);
-    if (!data.elements.length) 
+    this.controller = new HomeController(self);
+    const data = await this.controller.findrestaurants(radius, lat, lon);
+    if (!data.elements || !data.elements.length) 
     { 
       statusDiv.innerText = "😔 Nessun ristorante trovato."; 
       return; 
@@ -74,13 +76,14 @@ export default class HomeView
     this.selected=null;
     
     this.#setupBackButton();
-    
+
     // Crea marker con callback
     elements.forEach(el => {
       const marker = createRestaurantMarker(this.map, el, this.#handleSelect.bind(this));
       if (marker) this.markers.set(el.id, marker);
     });
     // Lista iniziale
+    const listContainer = document.getElementById('listView');
     renderRestaurantList(listContainer, elements, (el) => {
       const marker = this.markers.get(el.id);
       if (marker) marker.fire('click');
@@ -89,6 +92,7 @@ export default class HomeView
 
   // Metodo privato per gestire errori geolocalizzazione
   #showError(err) {
+    const statusDiv = document.getElementById("status");
     statusDiv.innerText = "⚠️ Permesso posizione negato o errore GPS.";
     alert("Consenti accesso alla posizione.");
   }

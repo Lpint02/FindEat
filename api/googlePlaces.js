@@ -1,30 +1,38 @@
+// Utility per attendere che la Google Maps Places API sia caricata (controlla anche il flag di caricamento)
+function waitForGoogleMaps(timeout = 15000) {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    function check() {
+      if ((window.google && window.google.maps && window.google.maps.places) || window.GOOGLE_MAPS_LOADED) {
+        resolve();
+      } else if (Date.now() - start > timeout) {
+        reject(new Error("Timeout caricamento Google Maps Places API"));
+      } else {
+        setTimeout(check, 100);
+      }
+    }
+    check();
+  });
+}
 // Funzione per ottenere i dettagli di un luogo da Google Places API
 export async function fetchPlaceDetails(name, lat, lng) {
+  await waitForGoogleMaps();
   return new Promise((resolve, reject) => {
-    if (!window.google || !window.google.maps || !window.google.maps.places) {
-      reject(new Error("Google Maps Places API non è caricata"));
-      return;
-    }
-
     const service = new google.maps.places.PlacesService(document.createElement('div'));
-
     const location = new google.maps.LatLng(lat, lng);
-
     service.findPlaceFromQuery({
       query: name,
       fields: ["place_id"],
-      locationBias: location // oggetto LatLng corretto
+      locationBias: location
     }, (results, status) => {
       if (status !== google.maps.places.PlacesServiceStatus.OK || !results || !results[0]) {
         reject(new Error(`Google Places findPlaceFromQuery fallita: ${status}`));
         return;
       }
-
       const placeId = results[0].place_id;
-
       service.getDetails({
-      placeId: placeId,
-      fields: [
+        placeId: placeId,
+        fields: [
           "name",
           "photos",
           "formatted_address",
@@ -65,12 +73,8 @@ export async function fetchPlaceDetails(name, lat, lng) {
 
 // Ottiene i dettagli di un luogo a partire dal placeId (utile per rigenerare URL delle foto)
 export async function fetchPlaceDetailsById(placeId) {
+  await waitForGoogleMaps();
   return new Promise((resolve, reject) => {
-    if (!window.google || !window.google.maps || !window.google.maps.places) {
-      reject(new Error("Google Maps Places API non è caricata"));
-      return;
-    }
-
     const service = new google.maps.places.PlacesService(document.createElement('div'));
     service.getDetails({
       placeId,
