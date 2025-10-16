@@ -1,12 +1,64 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>FindEat - Home</title>
+  <meta charset="utf-8" />
+  <title>FindEat - home</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Benvenuto su FindEat</h1>
-    <p>Trova i migliori ristoranti vicino a te!</p>
-    
+  <div id="layout">
+    <aside id="leftPanel" aria-live="polite">
+      <!-- Vista lista (default quando nessun ristorante è selezionato) -->
+      <div id="listView"></div>
+
+      <!-- Vista dettagli (mostrata quando si seleziona un ristorante) -->
+  <div id="detailView" class="hidden">
+        <div class="dp-photo-area">
+          <div class="hero-overlay">
+            <div class="hero-top-bar">
+              <button id="dpBackToList" type="button" class="back-btn hero-btn" aria-label="Torna alla lista">←</button>
+              <button id="dpLikeBtn" class="like-btn hero-btn" title="Mi piace">♡</button>
+            </div>
+            <h2 id="dpTitle" class="hero-title"></h2>
+          </div>
+          <img id="dpCurrentPhoto" src="" alt="Foto ristorante" />
+          <p id="dpNoPhotoMsg" style="display:none;">😕 Nessuna foto trovata per questo ristorante.</p>
+          <button id="dpPrevPhoto" class="carousel-btn" type="button" aria-label="Foto precedente">&#10094;</button>
+          <button id="dpNextPhoto" class="carousel-btn" type="button" aria-label="Foto successiva">&#10095;</button>
+        </div>
+
+        <div id="dpDetails" class="details"></div>
+
+        <div class="dp-reviews reviews-container" id="dpReviewsContainer">
+          <div class="reviews-header" id="dpReviewsHeader">
+            <span class="section-label">Recensioni</span>
+            <span id="dpRatingNumber" class="rating-number"></span>
+            <span id="dpStars" class="stars"></span>
+            <span id="dpReviewsCount" class="reviews-count"></span>
+          </div>
+          <div class="reviews-list" id="dpReviewsList" aria-hidden="true"></div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="map" role="region" aria-label="Mappa dei ristoranti">
+      <div id="status">📍 Recupero la tua posizione...</div>
+    </div>
+  </div>
+
+  <!-- Librerie -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Entry point modulare -->
+  <script type="module">
+      import { GOOGLE_MAPS_API_KEY } from '../config.js';
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+  </script>
 </body>
 </html>
