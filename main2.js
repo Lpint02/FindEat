@@ -9,7 +9,7 @@ const statusDiv = document.getElementById("status");
 
 if ("geolocation" in navigator) 
 {
-  navigator.geolocation.getCurrentPosition(async pos => {
+  navigator.geolocation.getCurrentPosition(async (pos) => {
     //const lat = 42.3498;
     //const lon = 13.3995;
     
