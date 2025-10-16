@@ -1,3 +1,9 @@
+import { initMap } from "./map/mapInit.js";
+import { createRestaurantMarker, selectedIcon, defaultIcon } from "./map/markerManager.js";
+import { renderRestaurantList } from "./ui/listPanel.js";
+import { renderDetailPanel, showListPanel } from "./ui/detailPanel.js";
+import { haversineKm } from "./map/geo.js";
+
 export default class HomeView 
 {
   //costruttore
@@ -10,10 +16,15 @@ export default class HomeView
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
   init() {
-        const app = document.getElementById("app");
-        let welcomeMsg = document.createElement("h1");
-        welcomeMsg.textContent = "Meglio il bianco!";
-        app.appendChild(welcomeMsg);
+        const statusDiv = document.getElementById("status");
+        if( "geolocation" in navigator){
+
+        }
+        else{
+          statusDiv.innerText = "❌ Geolocalizzazione non supportata dal browser.";
+        }
   }
+
+  
 }
 

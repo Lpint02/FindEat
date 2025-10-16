@@ -7,7 +7,8 @@ import { haversineKm } from "./map/geo.js";
 
 const statusDiv = document.getElementById("status");
 
-if ("geolocation" in navigator) {
+if ("geolocation" in navigator) 
+{
   navigator.geolocation.getCurrentPosition(async pos => {
     //const lat = 42.3498;
     //const lon = 13.3995;
@@ -104,6 +105,5 @@ if ("geolocation" in navigator) {
       if (marker) marker.fire('click');
     });
   }, err => { statusDiv.innerText = "⚠️ Permesso posizione negato o errore GPS."; alert("Consenti accesso alla posizione."); });
-} else {
-  statusDiv.innerText = "❌ Geolocalizzazione non supportata dal browser.";
-}
+} 
+
