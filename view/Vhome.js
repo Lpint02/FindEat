@@ -1,6 +1,6 @@
 import * as L from 'https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js';
 import { createRestaurantMarker, selectedIcon, defaultIcon } from "../map/markerManager.js";
-import { renderDetailPanel, showListPanel } from "./detailPanel.js";
+import { renderDetailPanel} from "./detailPanel.js";
 import HomeController from "../controller/Chome.js"
 
 export default class HomeView 
@@ -318,7 +318,16 @@ export default class HomeView
   // Metodo privato per mostrare il pannello lista
   #showListPanel() 
   {
-    
+    const detailView = document.getElementById('detailView');
+    const listView = document.getElementById('listView');
+    if (!detailView || !listView) return;
+    detailView.classList.add('hidden');
+    listView.classList.remove('hidden');
+    // Ripristina layout 50/50 quando si torna alla lista
+    document.body.classList.remove('detail-mode');
+    // Ripristina banner status quando si torna alla lista
+    const statusDiv = document.getElementById('status');
+    if (statusDiv) statusDiv.style.display = '';
   }
 }
 
