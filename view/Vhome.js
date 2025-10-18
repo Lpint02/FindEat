@@ -1,7 +1,6 @@
 import * as L from 'https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js';
 import { createRestaurantMarker, selectedIcon, defaultIcon } from "../map/markerManager.js";
 import { renderDetailPanel, showListPanel } from "./detailPanel.js";
-import { haversineKm } from "../map/geo.js";
 import HomeController from "../controller/Chome.js"
 
 export default class HomeView 
@@ -171,7 +170,7 @@ export default class HomeView
 
       if (typeof eLat === 'number' && typeof eLon === 'number') 
       {
-        el.__distanceKm = haversineKm(lat, lon, eLat, eLon);
+        el.__distanceKm = this.controller.haversineKm(lat, lon, eLat, eLon);
       } 
       else 
       {
@@ -209,7 +208,7 @@ export default class HomeView
         if (prevMarker) prevMarker.setIcon(defaultIcon);
       }
       this.selected = null;
-      showListPanel();
+      this.#showListPanel();
     });
   }
 
@@ -230,31 +229,96 @@ export default class HomeView
 
       const div = document.createElement('div');
       div.className = 'list-item';
-      div.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-          <div>
-            <h3 class="li-title" style="margin:0;">${name}</h3>
-            <div class="li-meta">${distance}</div>
-          </div>
-          <div style="display:flex; gap:8px;">
-            <button class="like-btn li-like" title="Mi piace" aria-label="Mi piace">♡</button>
-            <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
-          </div>
-        </div>
-      `;
+      div.innerHTML = this.#generateRestaurantItemHTML(name, distance);
+      
       // Click su Dettagli
-      div.querySelector('.li-details').addEventListener('click', (e) => { e.stopPropagation(); onSelect && onSelect(el); });
+      const detailsButton = div.querySelector('.li-details');
+      if (detailsButton) {
+        detailsButton.addEventListener('click', (event) => {
+          // Impedisce la propagazione dell'evento click agli elementi genitori
+          event.stopPropagation();
+
+          // Chiama la funzione onSelect se è definita, passando l'elemento el
+          if (onSelect) {
+            onSelect(el);
+          }
+        });
+      }
       // Click su like NON apre i dettagli
       const likeBtn = div.querySelector('.li-like');
-      likeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        likeBtn.classList.toggle('liked');
-        likeBtn.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
-      });
+      if (likeBtn) {
+        likeBtn.addEventListener('click', (event) => {
+          // Impedisce la propagazione dell'evento click agli elementi genitori
+          event.stopPropagation();
+
+          // Alterna la classe 'liked' sul pulsante
+          likeBtn.classList.toggle('liked');
+
+          // Aggiorna il testo del pulsante in base allo stato 'liked'
+          if (likeBtn.classList.contains('liked')) {
+            likeBtn.textContent = '♥'; // Cuore pieno
+          } else {
+            likeBtn.textContent = '♡'; // Cuore vuoto
+          }
+        });
+      }
       // Click ovunque sul box apre i dettagli
       div.addEventListener('click', () => onSelect && onSelect(el));
       container.appendChild(div);
     }
+  }
+
+  // Metodo privato per generare l'HTML di un elemento ristorante usando le primitive JS (NO INNER HTML !)
+  #generateRestaurantItemHTML(name, distance) {
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.justifyContent = 'space-between';
+    container.style.alignItems = 'center';
+    container.style.gap = '8px';
+
+    const leftDiv = document.createElement('div');
+
+    const title = document.createElement('h3');
+    title.className = 'li-title';
+    title.style.margin = '0';
+    title.textContent = name;
+
+    const meta = document.createElement('div');
+    meta.className = 'li-meta';
+    meta.textContent = distance;
+
+    leftDiv.appendChild(title);
+    leftDiv.appendChild(meta);
+
+    const rightDiv = document.createElement('div');
+    rightDiv.style.display = 'flex';
+    rightDiv.style.gap = '8px';
+
+    const likeButton = document.createElement('button');
+    likeButton.className = 'like-btn li-like';
+    likeButton.title = 'Mi piace';
+    likeButton.setAttribute('aria-label', 'Mi piace');
+    likeButton.textContent = '♡';
+
+    const detailsButton = document.createElement('button');
+    detailsButton.className = 'back-btn li-details';
+    detailsButton.title = 'Vedi dettagli';
+    detailsButton.setAttribute('aria-label', 'Vedi dettagli');
+    detailsButton.textContent = 'Dettagli';
+
+    rightDiv.appendChild(likeButton);
+    rightDiv.appendChild(detailsButton);
+
+    container.appendChild(leftDiv);
+    container.appendChild(rightDiv);
+
+    return container;
+  }
+
+  // Metodo privato per mostrare il pannello lista
+  #showListPanel() 
+  {
+    
   }
 }
 
