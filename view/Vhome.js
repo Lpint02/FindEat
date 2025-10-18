@@ -1,6 +1,5 @@
 import * as L from 'https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js';
 import { createRestaurantMarker, selectedIcon, defaultIcon } from "../map/markerManager.js";
-import { renderRestaurantList } from "./listPanel.js";
 import { renderDetailPanel, showListPanel } from "./detailPanel.js";
 import { haversineKm } from "../map/geo.js";
 import HomeController from "../controller/Chome.js"
@@ -78,15 +77,25 @@ export default class HomeView
     this.#setupBackButton();
 
     // Crea marker con callback
-    elements.forEach(el => {
+    elements.forEach(el => 
+    {
       const marker = createRestaurantMarker(this.map, el, this.#handleSelect.bind(this));
-      if (marker) this.markers.set(el.id, marker);
+      
+      // Se il marker è valido, aggiungilo alla mappa dei marker con l'id del ristorante
+      if (marker) {
+        this.markers.set(el.id, marker);
+      }
     });
     // Lista iniziale
     const listContainer = document.getElementById('listView');
-    renderRestaurantList(listContainer, elements, (el) => {
-      const marker = this.markers.get(el.id);
-      if (marker) marker.fire('click');
+    this.#renderRestaurantList(listContainer, elements, (restaurant) => {
+      // Recupera il marker corrispondente al ristorante selezionato
+      const marker = this.markers.get(restaurant.id);
+
+      // Simula un clic sul marker, se esiste
+      if (marker) {
+        marker.fire('click');
+      }
     });
   }
 
@@ -140,8 +149,26 @@ export default class HomeView
   #distanceRestaurantSorted(data, lat, lon) 
   {
     return data.elements.map(el => {
-      const eLat = el.lat ?? el.center?.lat;
-      const eLon = el.lon ?? el.center?.lon;
+      let eLat, eLon;
+
+      if (el.lat != null) 
+      {
+        eLat = el.lat;
+      } 
+      else if (el.center?.lat != null) 
+      {
+        eLat = el.center.lat;
+      }
+
+      if (el.lon != null) 
+      {
+        eLon = el.lon;
+      } 
+      else if (el.center?.lon != null) 
+      {
+        eLon = el.center.lon;
+      }
+
       if (typeof eLat === 'number' && typeof eLon === 'number') 
       {
         el.__distanceKm = haversineKm(lat, lon, eLat, eLon);
@@ -184,6 +211,50 @@ export default class HomeView
       this.selected = null;
       showListPanel();
     });
+  }
+
+  // Metodo privato per rendere la lista dei ristoranti
+  #renderRestaurantList(container, items, onSelect) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!items || !items.length) {
+      container.innerHTML = '<div>Nessun ristorante trovato nell\'area selezionata.</div>';
+      return;
+    }
+
+    for (const el of items) {
+      const name = el.tags?.name || 'Ristorante senza nome';
+      // Distanza (se disponibile in futuro: qui placeholder "- km")
+      const distance = el.__distanceKm != null ? `${el.__distanceKm.toFixed(1)} km` : '';
+
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <h3 class="li-title" style="margin:0;">${name}</h3>
+            <div class="li-meta">${distance}</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="like-btn li-like" title="Mi piace" aria-label="Mi piace">♡</button>
+            <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
+          </div>
+        </div>
+      `;
+      // Click su Dettagli
+      div.querySelector('.li-details').addEventListener('click', (e) => { e.stopPropagation(); onSelect && onSelect(el); });
+      // Click su like NON apre i dettagli
+      const likeBtn = div.querySelector('.li-like');
+      likeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        likeBtn.classList.toggle('liked');
+        likeBtn.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+      });
+      // Click ovunque sul box apre i dettagli
+      div.addEventListener('click', () => onSelect && onSelect(el));
+      container.appendChild(div);
+    }
   }
 }
 
