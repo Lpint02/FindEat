@@ -5,12 +5,7 @@ import HomeView from "./view/Vhome.js";
 import HomeController from "./controller/HomeController.js";
 import VProfilo from "./view/Vprofilo.js";
 import ProfiloController from "./controller/ProfileController.js";
-
-// Service (accesso ai dati, API, Firebase, ecc.)
-//import AuthService from "./service/AuthService.js";
-
-
-
+import { auth, onAuthStateChanged } from "./services/firebase-config.js";
 
 export const router = new Router("app"); // <main id="app"></main> di index.html
 
@@ -57,5 +52,19 @@ router.addRoute("/profilo", {
   }
 });
 
-// --- Avvio dell’app ---
+// --- Gestione autenticazione e routing iniziale ---
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("Utente autenticato:", user.email);
+    // 🔁 Se l’utente è loggato, vai direttamente a /home
+    if (window.location.pathname === "/" || window.location.pathname === "/login") {
+      router.navigate("/home");
+    } else {
+      router.init(); // nel caso l’utente ricarichi su /profilo o /home
+    }
+  } else {
+    console.log("Nessun utente loggato.");
+    router.navigate("/"); // 🔁 Torna alla login se non autenticato
+  }
+});
 router.init();
