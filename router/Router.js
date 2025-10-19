@@ -31,8 +31,8 @@ export default class Router
     const route = this.routes[path];
     
     if (!route) {
-      this.root.innerHTML = "<h2>404 - Pagina non trovata</h2>";
-      console.warn(`Rotta non trovata: ${path}`);
+      console.log("ROTA NON TROVATA");
+      await this.#manageWrongRoute(path);
       return;
     }
     console.log(`Caricamento rotta: ${path}`, route);
@@ -108,8 +108,28 @@ export default class Router
     });
   }
 
+  async #manageWrongRoute(path)
+  {
+    const route = this.routes[path];
+    if (!route) {
+    // Redirect a login se la rotta non esiste
+    if (this.routes['/login']) 
+    {
+      history.replaceState({}, "", "/login");
+      await this.#loadRoute("/login");
+    } 
+    else 
+    {
+      this.root.innerHTML = "<h2>404 - Pagina non trovata</h2>";
+    }
+    console.warn(`Rotta non trovata: ${path}`);
+    return;
+  }
+}
+
     // metodo per inizializzare il router (carica la rotta corrente)
-  init() {
+  init() 
+  {
     console.log("Router init:", window.location.pathname);
     this.#loadRoute(window.location.pathname);
   }
