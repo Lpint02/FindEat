@@ -25,6 +25,10 @@ export default class HomeController {
         console.debug('HomeController: calling geo.getCurrentPosition()');
         pos = await this.geo.getCurrentPosition();
         console.debug('HomeController: geo.getCurrentPosition resolved', pos);
+        // If the geolocation service returned a synthetic fallback, inform the user
+        if (pos && pos.isFallback && statusDiv) {
+          statusDiv.innerText = '⚠️ Geolocalizzazione non disponibile: usiamo una posizione predefinita (L\'Aquila).';
+        }
       } catch (geoErr) {
         console.error('HomeController: geolocation error', geoErr);
         if (statusDiv) statusDiv.innerText = `⚠️ Errore geolocalizzazione: ${geoErr?.message || geoErr}`;
