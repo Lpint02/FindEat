@@ -15,6 +15,7 @@ import ProfiloController from "./controller/ProfileController.js";
 export const router = new Router("app"); // <main id="app"></main> di index.html
 
 // --- Definizione delle rotte ---
+//Rotta di home
 router.addRoute("/home", {
   html: "pages/home.html",
   css: ["CSS/home.css"],

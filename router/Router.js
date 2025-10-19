@@ -127,7 +127,7 @@ export default class Router
   }
 }
 
-    // metodo per inizializzare il router (carica la rotta corrente)
+  // metodo per inizializzare il router (carica la rotta corrente)
   init() 
   {
     console.log("Router init:", window.location.pathname);
