@@ -1,3 +1,7 @@
+/* Mostra il cursore a forma di mano sul link Accedi */
+.fw-bold {
+  cursor: pointer;
+}
 body {
         min-height: 100vh;
         background: linear-gradient(to right, #2575fc, #6a11cb);

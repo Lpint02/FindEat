@@ -5,6 +5,8 @@ import HomeView from "./view/Vhome.js";
 import HomeController from "./controller/HomeController.js";
 import VProfilo from "./view/Vprofilo.js";
 import ProfiloController from "./controller/ProfileController.js";
+import RegistrationView from "./view/RegistrationView.js";
+import RegistrationController from "./controller/RegistrationController.js";
 import { auth, onAuthStateChanged } from "./services/firebase-config.js";
 
 export const router = new Router("app"); // <main id="app"></main> di index.html
@@ -39,6 +41,7 @@ router.addRoute("/", {
     }
 });
 
+//Rotta di profilo
 router.addRoute("/profilo", {
   html: "pages/profilo.html",
   css: ["CSS/profilo.css"],
@@ -52,11 +55,25 @@ router.addRoute("/profilo", {
   }
 });
 
+//Rotta di registrazione
+router.addRoute("/registrazione", {
+  html: "pages/registrazione.html",
+  css: ["CSS/registrazione.css"],
+  view: (routerInstance) => {
+    const view = new RegistrationView();
+    view.router = routerInstance;
+    const controller = new RegistrationController();
+    controller.router = routerInstance;
+    view.controller = controller;
+    return view;
+  }
+});
+
 // --- Gestione autenticazione e routing iniziale ---
 onAuthStateChanged(auth, (user) => {
   if (user) {
     console.log("Utente autenticato:", user.email);
-    // 🔁 Se l’utente è loggato, vai direttamente a /home
+    // Se l’utente è loggato, vai direttamente a /home
     if (window.location.pathname === "/" || window.location.pathname === "/login") {
       router.navigate("/home");
     } else {
@@ -64,7 +81,7 @@ onAuthStateChanged(auth, (user) => {
     }
   } else {
     console.log("Nessun utente loggato.");
-    router.navigate("/"); // 🔁 Torna alla login se non autenticato
+    router.navigate("/"); //Torna alla login se non autenticato
   }
 });
 router.init();

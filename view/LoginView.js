@@ -14,22 +14,9 @@ export default class LoginView
    */
   init() {
     console.log("LoginView initialized");
-    // Riferimenti agli elementi DOM già presenti nella pagina
-    //this.form = document.getElementById("loginForm");
-    //this.username = document.getElementById("username");
-    //this.password = document.getElementById("password");
-    //this.submitButton = document.getElementById("loginButton");
-    
-
-    // Collego gli eventi al presenter
-    //this.submitButton.addEventListener("click", (e) => {
-      //e.preventDefault(); // previene il comportamento di default del form
-      //const email = document.getElementById("username").value;
-      //const password = document.getElementById("password").value;
-      //this.controller.handleLogin(email, password);
-    //});
 
     
+    // Gestione submit del form di login
     document.querySelector('form').addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('typeEmailX').value;
@@ -39,6 +26,13 @@ export default class LoginView
       } else {
         console.error('controller.handleLogin non definito');
       }
+    });
+
+    // Gestione click sul link di registrazione
+    const link_registration = document.querySelector('p.mb-0.mt-4 a');
+    link_registration.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.router.navigate("/registrazione");
     });
   }
 
