@@ -1,4 +1,4 @@
-body {
+/* body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
   background-color: #f4f6f9;
   margin: 0;
@@ -49,7 +49,7 @@ body {
 }
 
 /* --- Carosello --- */
-.carousel-container {
+/* .carousel-container {
   position: relative;
   overflow: hidden;
 }
@@ -118,3 +118,4 @@ body {
 .carousel-btn.right {
   right: 5px;
 }
+   */
