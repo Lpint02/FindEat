@@ -3,15 +3,12 @@ body {
   background-color: #f4f6f9;
   margin: 0;
   padding: 0;
-  display: flex;
-  justify-content: center;
 }
 
 .profile-container {
-  max-width: 900px;
-  width: 95%;
+  width: 100%;
   background-color: white;
-  margin-top: 40px;
+  margin-top: 16px;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -117,4 +114,18 @@ body {
 
 .carousel-btn.right {
   right: 5px;
+}
+
+/* Override della Navbar di Bootstrap */
+.navbar {
+    background: linear-gradient(90deg, #000000 60%, #7ed957 100%) !important;
+    box-shadow: 0 2px 8px rgba(44,62,80,0.10);
+}
+.navbar .navbar-brand,
+.navbar .nav-link {
+    color: #fff !important;
+}
+.navbar .nav-link.active {
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(44,62,80,0.10);
 }

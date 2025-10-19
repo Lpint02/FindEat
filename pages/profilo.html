@@ -7,9 +7,27 @@
   <link rel="stylesheet" href="../CSS/profilo.css">
 </head>
 <body>
+    <!-- Navbar Bootstrap -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">FindEat</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    <a class="nav-link">Area Personale</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+  <!-- Profilo Utente -->
   <div class="profile-container">
     <header class="profile-header">
-      <img src="../assets/user-avatar.png" alt="Foto utente" class="profile-avatar">
+      <img src="../images/person-circle.svg" alt="Foto utente" class="profile-avatar">
       <div class="profile-info">
         <h1 id="user-name">Matteo Maloni</h1>
       </div>
@@ -19,6 +37,7 @@
 
         <h2>I miei ristoranti preferiti</h2>
 
+        <!--Carosello dei ristoranti preferiti-->
         <div id="carouselExampleFade" class="carousel slide carousel-fade">
             <div class="carousel-inner">
                 <div class="carousel-item active">
