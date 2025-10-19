@@ -106,10 +106,15 @@ body {
 .navbar {
     background: linear-gradient(90deg, #000000 60%, #000000 100%) !important;
     box-shadow: 0 2px 8px rgba(44,62,80,0.10);
+    font-size: 1.25rem;
+    min-height: 64px;
 }
 .navbar .navbar-brand,
 .navbar .nav-link {
     color: #fff !important;
+    font-size: 1.18em;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 .navbar .nav-link.active {
     font-weight: 600;
