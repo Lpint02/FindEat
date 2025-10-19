@@ -18,8 +18,8 @@ export const router = new Router("app"); // <main id="app"></main> di index.html
 
 //Rotta di login
 router.addRoute("/", {
-    html: "/pages/login.html",
-    css: ["/CSS/login.css"],
+  html: "pages/login.html",
+  css: ["CSS/login.css"],
     view: (routerInstance) => {
       const view = new LoginView();
       view.router = routerInstance;
@@ -30,8 +30,8 @@ router.addRoute("/", {
 });
 
 router.addRoute("/home", {
-  html: "/pages/home.html",
-  css: ["/CSS/home.css"],
+  html: "pages/home.html",
+  css: ["CSS/home.css"],
   view: (routerInstance) => {
     const view = new HomeView();
     view.router = routerInstance;
