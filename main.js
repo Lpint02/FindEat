@@ -36,6 +36,7 @@ router.addRoute("/", {
       const view = new LoginView();
       view.router = routerInstance;
       const controller = new LoginController();
+      controller.router = routerInstance;
       view.controller = controller;
       return view;
     }

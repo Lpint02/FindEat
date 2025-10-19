@@ -7,6 +7,7 @@ export default class LoginController {
     const success = await AuthService.login(email, password);
     if (success) {
       console.log("Login corretto, vai alla home");
+      this.router.navigate("/home");
     } else {
       alert("Credenziali errate, riprova.");
       console.log("Login fallito");
