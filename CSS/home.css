@@ -9,34 +9,30 @@
     top: 18px;
     left: 18px;
     display: flex;
-    gap: 14px;
-    padding: 8px 14px;
-    background: rgba(255,255,255,0.85);
-    border-radius: 18px;
-    box-shadow: 0 2px 12px rgba(44,62,80,0.08);
-    z-index: 10;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto; /* spinge i bottoni a destra */
+    flex: 0 0 auto;
 }
-.bottoni.navigazione button {
-    background: linear-gradient(90deg, #43a047 60%, #7ed957 100%);
-    color: #fff;
-    border: none;
-    padding: 10px 22px;
-    border-radius: 22px;
-    font-size: 1.08rem;
+.app-header .header-btn {
+    background: #000000;
+    color: #ffffff;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    border: 1px solid #000000;
+    padding: 8px 16px;
+    border-radius: 18px;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
-    transition: background 0.2s, box-shadow 0.2s;
-    margin: 0 2px;
-    letter-spacing: 0.5px;
+    transition: opacity 0.15s ease-in-out;
 }
-.bottoni.navigazione button:hover {
-    background: linear-gradient(90deg, #2e7031 60%, #43a047 100%);
-    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
+.app-header .header-btn:hover {
+    opacity: 0.85;
 }
 /* Bottoni Dettagli nelle card ristorante */
 .restaurant-card button {
-    background: #2d89ef;
+    background: #000000;
     color: #fff;
     border: none;
     padding: 8px 18px;
@@ -52,6 +48,21 @@
     background: #1b5fa7;
     box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
 }
+
+/* Responsiveness to keep left/right placement without wrapping */
+@media (max-width: 600px) {
+    .app-header .logo {
+        font-size: 1.05rem;
+    }
+        .app-header .header-btn {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            border-radius: 16px;
+        }
+        .app-header .header-inner {
+            padding: 10px 12px;
+        }
+    }
 
 /* Bottoni Logout e Profilo (in alto) */
 .top-bar {
@@ -116,19 +127,6 @@ body {
 
 .header h1 {
     font-size: 2.5rem;
-    background: linear-gradient(90deg, #43a047 60%, #7ed957 100%);
-    padding: 10px 22px;
-    border-radius: 22px;
-    font-size: 1.08rem;
-    font-weight: 600;
-    margin: 0 2px;
-    letter-spacing: 0.5px;
-}
-    button:hover {
-    background: linear-gradient(90deg, #2e7031 60%, #43a047 100%);
-
-    margin: 32px auto;
-    padding: 0 16px;
 }
 
 /* Search bar */
@@ -146,11 +144,11 @@ body {
     font-size: 1rem;
     outline: none;
 }
-    .main {
-        max-width: 900px;
-        margin: 32px auto;
-        padding: 0 16px;
-    }
+.main {
+    max-width: 900px;
+    margin: 32px auto;
+    padding: 0 16px;
+}
 
 .search-bar button {
     padding: 10px 24px;
