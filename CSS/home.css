@@ -1,3 +1,75 @@
+/* Bottoni Profilo e Logout in alto a sinistra */
+.bottoni.navigazione {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: flex;
+    gap: 14px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+    z-index: 10;
+}
+.bottoni.navigazione button {
+    background: linear-gradient(90deg, #43a047 60%, #7ed957 100%);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 22px;
+    font-size: 1.08rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+    transition: background 0.2s, box-shadow 0.2s;
+    margin: 0 2px;
+    letter-spacing: 0.5px;
+}
+.bottoni.navigazione button:hover {
+    background: linear-gradient(90deg, #2e7031 60%, #43a047 100%);
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
+}
+/* Bottoni Dettagli nelle card ristorante */
+.restaurant-card button {
+    background: #2d89ef;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 18px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-top: 8px;
+}
+.restaurant-card button:hover {
+    background: #1b5fa7;
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
+}
+
+/* Bottoni Logout e Profilo (in alto) */
+.top-bar {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0 16px 16px;
+}
+.top-bar button {
+    background: #43a047;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 18px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.top-bar button:hover {
+    background: #2e7031;
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
+}
 /* home.css */
 
 /* Reset some default styles */
@@ -25,18 +97,17 @@ body {
 
 .header h1 {
     font-size: 2.5rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+    background: linear-gradient(90deg, #43a047 60%, #7ed957 100%);
+    padding: 10px 22px;
+    border-radius: 22px;
+    font-size: 1.08rem;
+    font-weight: 600;
+    margin: 0 2px;
+    letter-spacing: 0.5px;
 }
+    button:hover {
+    background: linear-gradient(90deg, #2e7031 60%, #43a047 100%);
 
-.header p {
-    font-size: 1.2rem;
-    margin-top: 8px;
-}
-
-/* Main content */
-.main {
-    max-width: 900px;
     margin: 32px auto;
     padding: 0 16px;
 }
@@ -56,6 +127,11 @@ body {
     font-size: 1rem;
     outline: none;
 }
+    .main {
+        max-width: 900px;
+        margin: 32px auto;
+        padding: 0 16px;
+    }
 
 .search-bar button {
     padding: 10px 24px;
@@ -137,4 +213,25 @@ body {
     .search-bar input[type="text"] {
         width: 160px;
     }
+}
+
+/* Bottoni di navigazione */
+ #bottoni di navigazione button{
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+}
+
+#bottoni di navigazione button {
+    background: #ff7043;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#bottoni di navigazione button:hover {
+    background: #e64a19;
 }

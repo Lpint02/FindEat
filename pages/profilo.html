@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profilo Utente</title>
+  <link rel="stylesheet" href="../CSS/profilo.css">
+</head>
+<body>
+  <div class="profile-container">
+    <header class="profile-header">
+      <img src="../assets/user-avatar.png" alt="Foto utente" class="profile-avatar">
+      <div class="profile-info">
+        <h1 id="user-name">Matteo Maloni</h1>
+      </div>
+    </header>
+
+    <section class="profile-section">
+      <h2>I miei ristoranti preferiti</h2>
+
+      <div class="carousel-container">
+        <button class="carousel-btn left" id="prevBtn">&#10094;</button>
+
+        <div class="carousel" id="carousel">
+          <!-- Ogni card rappresenta un ristorante -->
+          <div class="restaurant-card">
+            <img src="../assets/ristorante1.jpg" alt="Ristorante 1">
+            <p class="restaurant-name">Ristorante Da Gino</p>
+          </div>
+
+          <div class="restaurant-card">
+            <img src="../assets/ristorante2.jpg" alt="Ristorante 2">
+            <p class="restaurant-name">La Trattoria del Mare</p>
+          </div>
+
+          <div class="restaurant-card">
+            <img src="../assets/ristorante3.jpg" alt="Ristorante 3">
+            <p class="restaurant-name">Pizzeria Bella Napoli</p>
+          </div>
+
+          <div class="restaurant-card">
+            <img src="../assets/ristorante4.jpg" alt="Ristorante 4">
+            <p class="restaurant-name">Osteria Moderna</p>
+          </div>
+
+          <div class="restaurant-card">
+            <img src="../assets/ristorante5.jpg" alt="Ristorante 5">
+            <p class="restaurant-name">Ristorante SushiZen</p>
+          </div>
+        </div>
+
+        <button class="carousel-btn right" id="nextBtn">&#10095;</button>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

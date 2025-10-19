@@ -7,13 +7,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="layout">
-    <aside id="leftPanel" aria-live="polite">
+  <table>
+    <thead>
+      <tr>
+      <td>
+        <div class="bottoni navigazione" role="navigation" aria-label="Bottoni di navigazione">
+          <button id="bottone_profilo">Profilo</button>
+          <button id="bottone_logout">Logout</button>
+        </div>
+      </td>
+    </tr>
+    </thead>
+    <tbody>
+      <div id="layout">
+        <aside id="leftPanel" aria-live="polite">
       <!-- Vista lista (default quando nessun ristorante è selezionato) -->
       <div id="listView"></div>
 
       <!-- Vista dettagli (mostrata quando si seleziona un ristorante) -->
-  <div id="detailView" class="hidden">
+      <div id="detailView" class="hidden">
         <div class="dp-photo-area">
           <div class="hero-overlay">
             <div class="hero-top-bar">
@@ -46,6 +58,11 @@
       <div id="status">📍 Recupero la tua posizione...</div>
     </div>
   </div>
+    </tbody>
+  </table>
+    
+
+  
 
   <!-- Librerie -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
