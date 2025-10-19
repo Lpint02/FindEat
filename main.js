@@ -1,5 +1,6 @@
 import Router from "./router/Router.js";
-import LoginView from "./view/VLogin.js";
+import LoginView from "./view/LoginView.js";
+import LoginController from "./controller/LoginController.js";
 import HomeView from "./view/Vhome.js";
 import HomeController from "./controller/HomeController.js";
 
@@ -15,20 +16,6 @@ import HomeController from "./controller/HomeController.js";
 export const router = new Router("app"); // <main id="app"></main> di index.html
 
 // --- Definizione delle rotte ---
-
-//Rotta di login
-router.addRoute("/", {
-  html: "pages/login.html",
-  css: ["CSS/login.css"],
-    view: (routerInstance) => {
-      const view = new LoginView();
-      view.router = routerInstance;
-      //const presenter = new LoginPresenter(view, authService, routerInstance);
-      //view.presenter = presenter;
-      return view;
-    }
-});
-
 router.addRoute("/home", {
   html: "pages/home.html",
   css: ["CSS/home.css"],
@@ -41,6 +28,21 @@ router.addRoute("/home", {
     return view;
   }
 });
+
+//Rotta di login
+router.addRoute("/", {
+  html: "pages/login.html",
+  css: ["CSS/login.css"],
+    view: (routerInstance) => {
+      const view = new LoginView();
+      view.router = routerInstance;
+      const controller = new LoginController();
+      view.controller = controller;
+      return view;
+    }
+});
+
+
 
 // --- Avvio dell’app ---
 router.init();

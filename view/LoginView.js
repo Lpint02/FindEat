@@ -1,7 +1,10 @@
+import LoginController from "../controller/LoginController.js";
+
 export default class LoginView 
 {
   //costruttore
   constructor() {
+    this.controller = new LoginController();
     this.presenter = null; // sarà assegnato da main.js
     this.router = null;    // sarà assegnato da main.js
   }
@@ -19,8 +22,10 @@ export default class LoginView
 
     // Collego gli eventi al presenter
     this.submitButton.addEventListener("click", (e) => {
-        e.preventDefault(); // previene il comportamento di default del form
-        this.router.navigate("/home");
+      e.preventDefault(); // previene il comportamento di default del form
+      const email = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      this.controller.handleLogin(email, password);
     });
   }
 
