@@ -43,8 +43,8 @@
 }
 .list-item:hover { box-shadow: 0 2px 8px rgb(0, 0, 0); }
 .list-item:active { transform: scale(0.995); }
-.li-title { font-weight: 600; margin: 0 0 4px; }
-.li-meta { color: #555; font-size: 13px; }
+.li-title { font-weight: 600; margin: 0 0 4px; font-size: 25px; }
+.li-meta { color: #555; font-size: 17px; }
 
 /* Detail view */
 #detailView { overflow: visible; display: flex; flex-direction: column; height: auto; }
