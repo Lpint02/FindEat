@@ -143,6 +143,13 @@ export default class Vhome {
       });
       window.__dp_kb_bound = true;
     }
+
+    // Add review button -> opens inline form replacing the reviews list
+    const addBtn = document.getElementById('dpAddReviewBtn');
+    if (addBtn && !addBtn.__bound) {
+      addBtn.addEventListener('click', () => this._showAddReviewForm());
+      addBtn.__bound = true;
+    }
   }
 
   // La view rende la lista e gestisce i click utente, notificando il controller via callback
@@ -304,6 +311,94 @@ export default class Vhome {
 
     // Ensure the detail panel UI bindings (like, prev/next, keyboard) are attached once.
     this.bindDetailPanelEventsOnce();
+  }
+
+  // Renders an inline form in place of reviews list. Placeholder only: name fixed, cancel works; save not implemented.
+  _showAddReviewForm() {
+    const listEl = document.getElementById('dpReviewsList');
+    if (!listEl) return;
+
+    // Save current HTML to restore on cancel
+    if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
+
+    // Build a simple form UI
+    listEl.innerHTML = `
+      <form id="addReviewForm" class="add-review-form" onsubmit="return false;">
+        <div class="arf-row">
+          <label>Nome</label>
+          <input type="text" id="arfName" value="nome" disabled />
+        </div>
+        <div class="arf-row">
+          <label>Voto</label>
+          <div class="arf-stars" id="arfStars" role="radiogroup" aria-label="Seleziona voto in stelle">
+            ${[1,2,3,4,5].map(i => `<button type="button" class="arf-star" data-value="${i}" aria-label="${i} stelle">★</button>`).join('')}
+          </div>
+          <input type="number" id="arfRating" min="1" max="5" step="1" placeholder="1-5" inputmode="numeric" aria-label="Voto numerico" />
+        </div>
+        <div class="arf-row">
+          <label>Commento (facoltativo)</label>
+          <textarea id="arfText" rows="3" placeholder="Scrivi qui la tua esperienza (opzionale)"></textarea>
+        </div>
+        <div class="arf-actions">
+          <button type="button" id="arfCancel" class="btn-secondary">Annulla</button>
+          <button type="button" id="arfSave" class="btn-primary" disabled>Salva</button>
+        </div>
+      </form>
+    `;
+
+    // State
+    let currentRating = null;
+    const stars = Array.from(listEl.querySelectorAll('.arf-star'));
+    const ratingInput = listEl.querySelector('#arfRating');
+
+    const renderStars = () => {
+      stars.forEach((s, idx) => {
+        const active = currentRating != null && idx < currentRating;
+        s.classList.toggle('active', !!active);
+        s.style.color = active ? '#FFD54A' : '#ddd';
+      });
+      // Enable save only when a rating is selected (name fixed; text optional)
+      const saveBtn = listEl.querySelector('#arfSave');
+      if (saveBtn) saveBtn.disabled = (currentRating == null);
+    };
+
+    // Star click -> set rating
+    stars.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = parseInt(btn.getAttribute('data-value'), 10);
+        currentRating = (v >= 1 && v <= 5) ? v : null;
+        ratingInput.value = currentRating != null ? String(currentRating) : '';
+        renderStars();
+      });
+    });
+
+    // Numeric input -> update stars
+    ratingInput.addEventListener('input', () => {
+      const v = parseInt(ratingInput.value, 10);
+      if (!isNaN(v) && v >= 1 && v <= 5) currentRating = v; else currentRating = null;
+      renderStars();
+    });
+
+    // Cancel -> restore previous list content
+    const cancelBtn = listEl.querySelector('#arfCancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => {
+      if (this._savedReviewsHtml != null) {
+        listEl.innerHTML = this._savedReviewsHtml;
+        this._savedReviewsHtml = null;
+      } else {
+        listEl.innerHTML = '';
+      }
+    });
+
+    // Save (placeholder: not active yet)
+    const saveBtn = listEl.querySelector('#arfSave');
+    if (saveBtn) saveBtn.addEventListener('click', () => {
+      // Non implementato per ora. Potremo inviare al controller per persistenza.
+      // Intenzionalmente vuoto.
+    });
+
+    // Initial paint
+    renderStars();
   }
 
   // La view torna alla lista

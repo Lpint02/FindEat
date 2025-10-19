@@ -125,25 +125,28 @@ body {
   right: 5px;
 }
 
-/* Override della Navbar di Bootstrap */
+/* Override della Navbar di Bootstrap (uniforme con home) */
 .navbar {
-    background: linear-gradient(90deg, #000000 60%, #000000 100%) !important;
-    box-shadow: 0 2px 8px rgba(44,62,80,0.10);
+  background: linear-gradient(90deg, #000000 60%, #000000 100%) !important;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.10);
+  font-size: 1.25rem;
+  min-height: 64px;
 }
-.navbar .navbar-brand,
+.navbar .navbar-brand {
+  color: #fff !important;
+  font-size: clamp(28px, 4vw, 42px); /* brand più grande dei bottoni */
+  font-weight: 700;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
 .navbar .nav-link {
-    color: #fff !important;
-    font-size: 1.18em;
-    padding-top: 10px;
-    padding-bottom: 10px;
+  color: #fff !important;
+  font-size: clamp(16px, 2.6vw, 22px);
+  font-weight: 600;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 .navbar .nav-link.active {
-    font-weight: 600;
-    text-shadow: 0 1px 6px rgba(44,62,80,0.10);
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(44,62,80,0.10);
 }
-  .navbar {
-    background: linear-gradient(90deg, #000000 60%, #000000 100%) !important;
-    box-shadow: 0 2px 8px rgba(44,62,80,0.10);
-    font-size: 1.25rem;
-    min-height: 64px;
-  }
