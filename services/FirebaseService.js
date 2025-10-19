@@ -19,7 +19,13 @@ export default class FirebaseService {
       const db = getDb();
       const docRef = doc(db, collection, id);
       const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? docSnap.data() : null;
+      if (docSnap.exists()) {
+        console.log('Documento letto con successo:', docSnap.data());
+        return docSnap.data();
+      } else {
+        console.log('Documento non trovato');
+        return null;
+      }
     } catch (e) {
       console.error('Errore leggendo documento:', e);
       return null;
