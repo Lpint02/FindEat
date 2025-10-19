@@ -1,6 +1,6 @@
 import GeolocationService from "../services/GeolocationService.js";
 import OverpassService from "../services/OverpassService.js";
-import RestaurantModel from "../model/RestaurantModel.js";
+import Restaurant from "../model/Restaurant.js";
 import GooglePlacesService from "../services/GooglePlacesService.js";
 import FirebaseService from "../services/FirebaseService.js";
 
@@ -9,7 +9,6 @@ export default class HomeController {
     this.view = view; // Vhome instance
     this.geo = new GeolocationService();
     this.overpass = new OverpassService();
-    this.model = new RestaurantModel(this.overpass);
     this.watchId = null;
     this._placesService = null;
     this._firebase = null;
@@ -61,7 +60,10 @@ export default class HomeController {
       // Load restaurants (network call) and render UI
       let restaurants = [];
       try {
-        restaurants = await this.model.loadNearby(lat, lon, radius);
+        const elements = await this.overpass.fetchRestaurants(lat, lon, radius);
+        restaurants = elements.map(Restaurant.fromOverpass);
+        for (const r of restaurants) r.computeDistance(lat, lon);
+        restaurants.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
       } catch (loadErr) {
         console.error('HomeController: errore caricando i ristoranti', loadErr);
         if (statusDiv) statusDiv.innerText = '⚠️ Errore caricando i dati dei ristoranti.';
@@ -80,7 +82,7 @@ export default class HomeController {
         this._placesService = new GooglePlacesService();
         this._firebase = new FirebaseService();
         this.view.renderMapRestaurants(restaurants, (payload) => this.handleMarkerClick(payload));
-        this.view.renderList(restaurants.map(r => r.raw ?? r), (el) => this.onListSelect(el));
+        this.view.renderList(restaurants, (el) => this.onListSelect(el));
       } catch (renderErr) {
         console.error('HomeController: errore rendering view', renderErr);
         if (statusDiv) statusDiv.innerText = '⚠️ Errore rendering UI.';
@@ -105,33 +107,26 @@ export default class HomeController {
     if (this.view?.showDetails) {
       // Ensure UI bindings for the detail panel are initialized (like/keys/prev-next)
       if (typeof this.view.bindDetailPanelEventsOnce === 'function') this.view.bindDetailPanelEventsOnce();
-      this.view.showDetails(data, fallbackName, el.raw ?? el);
+      // el è Restaurant
+      this.view.showDetails(data, fallbackName, el);
     }
   }
 
   // New: centralize enrichment logic here (Firebase + Google Places) previously in markerManager
   async handleMarkerClick({ el, location, fallbackName }) {
-    // el is the raw Overpass element; build docId
+    // el è Restaurant: recupera raw quando serve
+    const raw = el.raw ?? el; // compat: se mai venisse passato il raw
     const lat = location?.lat; const lon = location?.lon;
-    const name = fallbackName || el?.tags?.name;
-    const docId = `osm_${el.type}_${el.id}`;
+    const name = fallbackName || el?.name || el?.tags?.name;
+    const docId = `osm_${raw.type}_${raw.id}`;
 
     // Start with firebase if available
     try {
+      console.log('HomeController: checking Firebase for docId', docId);
       const saved = await this._firebase.getById('Restaurant', docId);
       if (saved) {
-        // attempt to refresh via placeId
-        let dataOut = saved;
-        try {
-          if (saved.placeId) {
-            const fresh = await this._placesService.getDetailsById(saved.placeId);
-            const freshPhotos = fresh?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
-            const openNowFresh = fresh?.current_opening_hours?.open_now ?? fresh?.opening_hours?.open_now;
-            const weekdayTextFresh = fresh?.current_opening_hours?.weekday_text || fresh?.opening_hours?.weekday_text || saved.opening_hours_weekday_text;
-            dataOut = { ...saved, photos: freshPhotos.length ? freshPhotos : saved.photos, open_now: openNowFresh !== undefined ? openNowFresh : saved.open_now, opening_hours_weekday_text: weekdayTextFresh };
-          }
-        } catch(e) { console.warn('Impossibile rigenerare dati da placeId', e); }
-        return this.onMarkerSelected({ data: dataOut, fallbackName: name, el: { raw: el } });
+        // NON fare refresh a Google: usa i dati salvati e basta
+        return this.onMarkerSelected({ data: saved, fallbackName: name, el });
       }
     } catch(e) {
       console.warn('Firebase getById failed (non blocking)', e);
@@ -140,9 +135,9 @@ export default class HomeController {
     // No saved doc -> try Google Places
     try {
       const place = await this._placesService.getDetailsByName(name, lat, lon);
-      const openNow = place?.current_opening_hours?.open_now ?? place?.opening_hours?.open_now;
+      const openNow = (place?.current_opening_hours?.open_now ?? place?.opening_hours?.open_now);
       const weekdayText = place?.current_opening_hours?.weekday_text || place?.opening_hours?.weekday_text || null;
-      const toSave = {
+      const toSaveRaw = {
         name: place?.name || name,
         placeId: place?.place_id || null,
         formatted_address: place?.formatted_address || null,
@@ -150,7 +145,7 @@ export default class HomeController {
         website: place?.website || null,
         cuisine: el.tags?.cuisine || null,
         opening_hours_weekday_text: weekdayText,
-        open_now: openNow,
+        open_now: (openNow === true ? true : openNow === false ? false : null),
         rating: place?.rating || null,
         user_ratings_total: place?.user_ratings_total || null,
         price_level: place?.price_level ?? null,
@@ -169,18 +164,19 @@ export default class HomeController {
         location: { lat, lng: lon },
         savedAt: new Date().toISOString()
       };
+      const toSave = JSON.parse(JSON.stringify(toSaveRaw)); // strip undefined
       try { await this._firebase.saveById('Restaurant', docId, toSave); } catch(e) { console.warn('Impossibile salvare su Firebase (non blocking)', e); }
-      return this.onMarkerSelected({ data: toSave, fallbackName: name, el: { raw: el } });
+      return this.onMarkerSelected({ data: toSave, fallbackName: name, el });
     } catch(e) {
       console.warn('Google Places fallback failed (non blocking)', e);
     }
 
     // Fallback: show OSM-only details
-    return this.onMarkerSelected({ data: null, fallbackName: name, el: { raw: el } });
+    return this.onMarkerSelected({ data: null, fallbackName: name, el });
   }
 
   onListSelect(el) {
-    // Chiede alla View di attivare il marker corrispondente
+    // el è Restaurant: Chiede alla View di attivare il marker corrispondente
     this.view.selectOnMapById(el.id);
   }
 
