@@ -283,9 +283,9 @@ export default class Vhome {
 
   // Mappa: init e gestione marker/selezione (era in MapView)
   initMap(center, radius) {
-    this.map = L.map('map').setView(center, 15);
+    this.map = L.map('map').setView(center, 15); 
     if (this.map.zoomControl?.setPosition) this.map.zoomControl.setPosition('topright');
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(this.map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(this.map);
     L.circle(center, { radius, color: "#1976d2", fillColor: "#64b5f6", fillOpacity: 0.12, weight: 1 }).addTo(this.map);
   }
   // Imposta il marker dell'utente (era in MapView)
@@ -334,7 +334,7 @@ export default class Vhome {
     if (!lat || !lon) return;
 
     const marker = L.marker([lat, lon], { icon: this.defaultIcon }).addTo(map);
-  const tooltipHtml = this._buildPopupHtml(el.tags || {});
+    const tooltipHtml = this._buildPopupHtml(el.tags || {});
     marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -6], opacity: 0.95 });
 
     marker.on('click', () => {
@@ -361,7 +361,7 @@ export default class Vhome {
     if (m) m.fire('click');
   }
 
-  // La view può ripulire la selezione (era in MapView)
+  // La view può ripulire la selezione (ad esempio quando torno indietro dai dettagli di un ristorante)
   clearMapSelection() {
     if (this.selected?.el?.id) {
       const prevMarker = this.markers.get(this.selected.el.id);
