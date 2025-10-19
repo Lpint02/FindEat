@@ -10,7 +10,7 @@ export default class Vhome {
     // Stato mappa/ui
     this.map = null;
     this.userMarker = null;
-    this.markers = new Map();
+    this.markers = new Map(); // id => marker (rosso o blu) popolata in renderMapRestaurants
     this.selected = null;
 
     this.defaultIcon = L.icon({
@@ -140,8 +140,9 @@ export default class Vhome {
       return;
     }
     for (const el of items) {
-      const name = el.tags?.name || 'Ristorante senza nome';
-      const distance = el.__distanceKm != null ? `${el.__distanceKm.toFixed(1)} km` : '';
+      // el è Restaurant
+      const name = el.name || el.tags?.name || 'Ristorante senza nome';
+      const distance = typeof el.distanceKm === 'number' ? `${el.distanceKm.toFixed(1)} km` : '';
       const div = document.createElement('div');
       div.className = 'list-item';
       div.innerHTML = `
@@ -179,8 +180,8 @@ export default class Vhome {
     const statusDiv = document.getElementById('status');
     if (statusDiv) statusDiv.style.display = 'none';
 
-    const titleEl = document.getElementById('dpTitle');
-    const baseName = data?.name || fallbackName || (el?.tags?.name ?? 'Dettagli ristorante');
+  const titleEl = document.getElementById('dpTitle');
+  const baseName = data?.name || fallbackName || (el?.name ?? el?.tags?.name ?? 'Dettagli ristorante');
     let openBadge = '';
     const openNow = (data?.open_now !== undefined ? data.open_now : (data?.opening_hours?.open_now));
     if (openNow !== undefined) {
@@ -202,9 +203,9 @@ export default class Vhome {
     }
 
     const detailsEl = document.getElementById('dpDetails');
-    const tags = el?.tags || {};
+  const tags = el?.tags || {};
     const g = data || {};
-    const distanceKm = typeof el.__distanceKm === 'number' ? `${el.__distanceKm.toFixed(1)} km` : null;
+  const distanceKm = typeof el?.distanceKm === 'number' ? `${el.distanceKm.toFixed(1)} km` : null;
     const price = g.price_level != null ? '€'.repeat(g.price_level || 1) : null;
     const rating = g.rating != null ? g.rating.toFixed(1) : null;
     const totalRatings = g.user_ratings_total != null ? g.user_ratings_total : null;
@@ -311,29 +312,27 @@ export default class Vhome {
   }
   // Imposta il marker dell'utente (era in MapView)
   setUserMarker(lat, lon) {
-    const userMarkerIcon = L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-      iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], tooltipAnchor: [16,-28], shadowSize: [41,41]
-    });
-    if (!this.userMarker) this.userMarker = L.marker([lat, lon], { icon: userMarkerIcon, interactive: false }).addTo(this.map);
+    if (!this.userMarker) this.userMarker = L.marker([lat, lon], { icon: this.selectedIcon, interactive: false }).addTo(this.map);
     else this.userMarker.setLatLng([lat, lon]);
   }
+
   // Aggiorna la posizione dell'utente (era in MapView)
   updateUserPosition(lat, lon) {
     if (this.userMarker) this.userMarker.setLatLng([lat, lon]);
   }
+
   // La view può renderizzare i marker dei ristoranti sulla mappa (era in MapView)
   renderMapRestaurants(elements, onSelect) {
-    for (const m of this.markers.values()) m.remove();
+    for (const m of this.markers.values()) m.remove(); // pulisce i marker esistenti
     this.markers.clear();
-    elements.forEach(el => {
-      const marker = this._createRestaurantMarker(this.map, el.raw ?? el, (payload) => this.onSelectMarker(payload, onSelect));
-      if (marker) this.markers.set((el.raw?.id ?? el.id), marker);
+    elements.forEach(el => { 
+      // el è un'istanza di Restaurant: usa lat/lon/tags direttamente
+      const marker = this._createRestaurantMarker(this.map, el, (payload) => this.onSelectMarker(payload, onSelect)); //per ogni elemento crea un marker
+      if (marker) this.markers.set(el.id, marker); // salvalo sulla mappa con chiave coerente
     });
   }
-  // La view può selezionare un ristorante sulla mappa
+
+  // La view può selezionare un ristorante sulla mappa (el è Restaurant)
   onSelectMarker({ data, fallbackName, el, location }, externalSelect) {
     if (this.selected?.el?.id && this.selected.el.id !== el.id) {
       const prevMarker = this.markers.get(this.selected.el.id);
@@ -350,8 +349,9 @@ export default class Vhome {
 
   // UI-only factory to create a restaurant marker and emit a minimal payload when clicked
   _createRestaurantMarker(map, el, onSelect) {
-    const lat = el.lat || el.center?.lat;
-    const lon = el.lon || el.center?.lon;
+    // el è Restaurant: lat/lon sono diretti
+    const lat = el.lat;
+    const lon = el.lon;
     if (!lat || !lon) return;
 
     const marker = L.marker([lat, lon], { icon: this.defaultIcon }).addTo(map);
@@ -359,7 +359,7 @@ export default class Vhome {
     marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -6], opacity: 0.95 });
 
     marker.on('click', () => {
-      const name = el.tags?.name || null;
+      const name = el.name || el.tags?.name || null;
       if (!name) return alert('Nessun nome per questo ristorante.');
       if (onSelect) onSelect({ el, location: { lat, lon }, fallbackName: name });
     });
