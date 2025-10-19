@@ -48,7 +48,7 @@ export default class Vhome {
     }
 
     // Navbar: Area Personale event
-    const areaPersonaleLink = document.querySelector('.navbar-nav .nav-link:not(.active)');
+    const areaPersonaleLink = document.querySelector('.navbar-nav .nav-link:nth-child(2)')
     if (areaPersonaleLink) {
       areaPersonaleLink.addEventListener('click', (e) => {
       e.preventDefault();
@@ -62,7 +62,22 @@ export default class Vhome {
         console.log('Area Personale cliccata');
       }
           });
+    }
+
+    // Navbar: Logout event
+    const logoutLink = document.querySelector('.navbar-nav .nav-link');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Logout cliccato');
+        // Qui puoi chiamare il controller o il router
+        if (this.controller && typeof this.controller.logout === 'function') {
+          this.controller.logout();
+        } else {
+          console.log('Logout cliccato');
         }
+      });
+    }
 
     // Avvia il controller dell'area Home
     if (this.controller && typeof this.controller.init === 'function') 

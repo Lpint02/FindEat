@@ -24,6 +24,7 @@ router.addRoute("/home", {
     view.router = routerInstance;
     // collega controller MVC
     const controller = new HomeController(view);
+    controller.router = routerInstance;
     view.controller = controller;
     return view;
   }
@@ -50,6 +51,7 @@ router.addRoute("/profilo", {
     const view = new VProfilo();
     view.router = routerInstance;
     const controller = new ProfiloController(view);
+    controller.router = routerInstance;
     view.controller = controller;
     return view;
   }

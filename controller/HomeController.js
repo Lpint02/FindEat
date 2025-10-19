@@ -3,6 +3,7 @@ import OverpassService from "../services/OverpassService.js";
 import Restaurant from "../model/Restaurant.js";
 import GooglePlacesService from "../services/GooglePlacesService.js";
 import FirebaseService from "../services/FirebaseService.js";
+import AuthService from "../services/AuthService.js";
 
 export default class HomeController {
   constructor(view) {
@@ -207,4 +208,15 @@ export default class HomeController {
   destroy() {
     if (this.watchId) this.geo.clearWatch(this.watchId);
   }
+
+  async logout() {
+    let result = await AuthService.logout();
+    if (result) {
+      console.log("Logout avvenuto con successo");
+      this.router.navigate("/");
+    } else {
+      console.log("Logout fallito");
+    }
+  }
+
 }

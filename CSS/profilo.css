@@ -1,3 +1,12 @@
+/* Mostra il cursore a forma di mano sul link Home */
+#homeButton {
+  cursor: pointer;
+}
+/* Assicura che la navbar sia sopra il carosello */
+.navbar {
+  position: relative;
+  z-index: 1000;
+}
 body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
   background-color: #f4f6f9;
