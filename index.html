@@ -7,20 +7,6 @@
 
   <!-- CSS globale -->
   <link rel="stylesheet" href="/CSS/style.css" />
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Leaflet JS (caricato PRIMA del main per avere L globale nei moduli) -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Caricamento globale Google Maps Places API -->
-  <script type="module">
-    import { GOOGLE_MAPS_API_KEY } from './config.js';
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  </script>
 
 </head>
 <body>
