@@ -17,6 +17,7 @@ export default class OverpassService {
       return data.elements || [];
     } finally {
       clearTimeout(timer);
+      
     }
   }
 }
