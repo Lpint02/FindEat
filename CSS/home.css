@@ -1,3 +1,4 @@
+
 /* Bottoni Profilo e Logout in alto a sinistra */
 .bottoni.navigazione {
     position: absolute;
@@ -84,6 +85,20 @@ body {
     background: #f8f9fa;
     color: #222;
     min-height: 100vh;
+}
+
+/* Override della Navbar di Bootstrap */
+.navbar {
+    background: linear-gradient(90deg, #000000 60%, #7ed957 100%) !important;
+    box-shadow: 0 2px 8px rgba(44,62,80,0.10);
+}
+.navbar .navbar-brand,
+.navbar .nav-link {
+    color: #fff !important;
+}
+.navbar .nav-link.active {
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(44,62,80,0.10);
 }
 
 /* Header styles */
@@ -215,23 +230,4 @@ body {
     }
 }
 
-/* Bottoni di navigazione */
- #bottoni di navigazione button{
-    display: flex;
-    justify-content: center;
-    margin: 16px 0;
-}
 
-#bottoni di navigazione button {
-    background: #ff7043;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 24px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-#bottoni di navigazione button:hover {
-    background: #e64a19;
-}
