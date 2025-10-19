@@ -104,7 +104,7 @@ body {
 
 /* Override della Navbar di Bootstrap */
 .navbar {
-    background: linear-gradient(90deg, #000000 60%, #7ed957 100%) !important;
+    background: linear-gradient(90deg, #000000 60%, #000000 100%) !important;
     box-shadow: 0 2px 8px rgba(44,62,80,0.10);
 }
 .navbar .navbar-brand,
