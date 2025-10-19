@@ -2,35 +2,44 @@
 
 body {
     font-family: Arial, sans-serif;
-    background: #f5f5f5;
+    background: #65c7ce;
     margin: 0;
     padding: 0;
-}
-
+    align-items: center;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(135deg, #e3f0ff 0%, #b6d0f7 100%);
 .login-container {
     max-width: 350px;
     margin: 60px auto;
-    background: #fff;
+    background: #ca9229;
     padding: 32px 24px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.login-container h2 {
-    text-align: center;
-    margin-bottom: 24px;
+        max-width: 370px;
+        margin: 80px auto 0 auto;
+        background: #fff;
+        padding: 40px 30px 32px 30px;
+        border-radius: 14px;
+        box-shadow: 0 6px 32px rgba(44, 62, 80, 0.13);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     color: #333;
 }
 
-.login-container label {
-    display: block;
-    margin-bottom: 8px;
+        text-align: center;
+        margin-bottom: 28px;
+        color: #2d89ef;
+        font-weight: 600;
+        letter-spacing: 1px;
+        font-size: 2rem;
     color: #555;
 }
 
 .login-container input[type="text"],
 .login-container input[type="password"] {
-    width: 100%;
+        color: #2d89ef;
+        font-weight: 500;
+        letter-spacing: 0.5px;
     padding: 10px;
     margin-bottom: 18px;
     border: 1px solid #ccc;
@@ -41,24 +50,33 @@ body {
 .login-container button {
     width: 100%;
     padding: 10px;
+        font-size: 1rem;
+        background: #f8fbff;
+        transition: border 0.2s;
     background: #2d89ef;
     color: #fff;
     border: none;
     border-radius: 4px;
+        border: 1.5px solid #2d89ef;
+        outline: none;
     font-size: 16px;
     cursor: pointer;
     transition: background 0.2s;
-}
-
-.login-container button:hover {
-    background: #1b5fa7;
-}
-
-.login-container .error {
-    color: #d8000c;
-    background: #ffd2d2;
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(90deg, #2d89ef 60%, #6fb1fc 100%);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+        transition: background 0.2s, box-shadow 0.2s;
+        letter-spacing: 0.5px;
     padding: 8px;
     border-radius: 4px;
     margin-bottom: 12px;
-    text-align: center;
+        background: linear-gradient(90deg, #1b5fa7 60%, #2d89ef 100%);
+        box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
 }
