@@ -38,17 +38,38 @@ export default class Vhome {
   /**
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
-  init() {
-        // Aggancia elementi UI
-        this.listContainer = document.getElementById('listView');
-        this.backBtn = document.getElementById('dpBackToList');
-        if (this.backBtn) {
-          this.backBtn.addEventListener('click', () => this.controller?.onBack());
+  init() 
+  {
+    // Aggancia elementi UI
+    this.listContainer = document.getElementById('listView');
+    this.backBtn = document.getElementById('dpBackToList');
+    if (this.backBtn) {
+      this.backBtn.addEventListener('click', () => this.controller?.onBack());
+    }
+
+    // Navbar: Area Personale event
+    const areaPersonaleLink = document.querySelector('.navbar-nav .nav-link:not(.active)');
+    if (areaPersonaleLink) {
+      areaPersonaleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Qui puoi chiamare il controller o il router
+      if (this.router && typeof this.router.navigate === 'function') 
+      {
+        this.router.navigate('/profilo'); // esempio: route "profilo"
+      } 
+      else 
+      {
+        console.log('Area Personale cliccata');
+      }
+          });
         }
-        // Avvia il controller dell'area Home
-        if (this.controller && typeof this.controller.init === 'function') {
-          this.controller.init();
-        }
+
+    // Avvia il controller dell'area Home
+    if (this.controller && typeof this.controller.init === 'function') 
+    {
+      this.controller.init();
+    }
+        
   }
 
   // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.

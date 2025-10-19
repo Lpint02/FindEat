@@ -16,41 +16,32 @@
     </header>
 
     <section class="profile-section">
-      <h2>I miei ristoranti preferiti</h2>
 
-      <div class="carousel-container">
-        <button class="carousel-btn left" id="prevBtn">&#10094;</button>
+        <h2>I miei ristoranti preferiti</h2>
 
-        <div class="carousel" id="carousel">
-           <!-- Ogni card rappresenta un ristorante -->
-          <div class="restaurant-card">
-            <img src="../assets/ristorante1.jpg" alt="Ristorante 1">
-            <p class="restaurant-name">Ristorante Da Gino</p>
-          </div>
-
-          <div class="restaurant-card">
-            <img src="../assets/ristorante2.jpg" alt="Ristorante 2">
-            <p class="restaurant-name">La Trattoria del Mare</p>
-          </div>
-
-          <div class="restaurant-card">
-            <img src="../assets/ristorante3.jpg" alt="Ristorante 3">
-            <p class="restaurant-name">Pizzeria Bella Napoli</p>
-          </div>
-
-          <div class="restaurant-card">
-            <img src="../assets/ristorante4.jpg" alt="Ristorante 4">
-            <p class="restaurant-name">Osteria Moderna</p>
-          </div>
-
-          <div class="restaurant-card">
-            <img src="../assets/ristorante5.jpg" alt="Ristorante 5">
-            <p class="restaurant-name">Ristorante SushiZen</p>
-          </div>
+        <div id="carouselExampleFade" class="carousel slide carousel-fade">
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <img src="..." class="d-block w-100" alt="...">
+                </div>
+                <div class="carousel-item">
+                    <img src="..." class="d-block w-100" alt="...">
+                </div>
+                <div class="carousel-item">
+                    <img src="..." class="d-block w-100" alt="...">
+                </div>
+            </div>
         </div>
-
-        <button class="carousel-btn right" id="nextBtn">&#10095;</button>
-      </div>
+    
+       <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleFade" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+       </button>
+       <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleFade" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+       </button>
+  </div>
     </section>
   </div>
 </body>

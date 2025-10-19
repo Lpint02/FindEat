@@ -1,33 +1,13 @@
-/* Header bianco con logo a sinistra e bottoni neri a destra */
-.app-header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: #ffffff;
-    border-bottom: 1px solid #000000;
-    width: 100%;
+/* Pointer cursor for navbar links without href (in pratica metti la mano)*/
+.navbar-nav .nav-link:not([href]) {
+    cursor: pointer;
 }
-.app-header .header-inner {
-    max-width: none; /* permetti piena larghezza per avere bottoni all'estrema destra */
-    width: 100%;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* titolo a sinistra, azioni a destra */
-    gap: 12px;
-    margin: 0; /* se vuoi centrare il contenitore, usa margin: 0 auto; */
-    box-sizing: border-box;
-}
-.app-header .logo {
-    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
-    font-weight: 700;
-    font-size: 1.25rem;
-    color: #000000;
-    letter-spacing: 0.5px;
-    text-transform: lowercase;
-    flex: 0 0 auto;
-}
-.app-header .header-actions {
+
+/* Bottoni Profilo e Logout in alto a sinistra */
+.bottoni.navigazione {
+    position: absolute;
+    top: 18px;
+    left: 18px;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -120,8 +100,20 @@ body {
     background: #f8f9fa;
     color: #222;
     min-height: 100vh;
-    /* spazio per header sticky in pagine con layout assoluto */
-    padding-top: 0px;
+}
+
+/* Override della Navbar di Bootstrap */
+.navbar {
+    background: linear-gradient(90deg, #000000 60%, #7ed957 100%) !important;
+    box-shadow: 0 2px 8px rgba(44,62,80,0.10);
+}
+.navbar .navbar-brand,
+.navbar .nav-link {
+    color: #fff !important;
+}
+.navbar .nav-link.active {
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(44,62,80,0.10);
 }
 
 /* Header styles */
@@ -240,54 +232,4 @@ body {
     }
 }
 
-/* Rimuove regole non valide che colpivano tutti i bottoni */
 
-/* Stili specifici per i bottoni nella lista (Vhome) */
-.list-item .li-details {
-    background: #ffffff;
-    color: #000000;
-    border: 1px solid #b3b3b3;
-    padding: 8px 14px;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
-    transition: background 0.2s, box-shadow 0.2s;
-}
-.list-item .li-details:hover {
-    background: #abacad4b;
-    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
-}
-
-.list-item .li-like {
-    background: #fff;
-    color: #333;
-    border: 1px solid #b3b3b3;
-    padding: 6px 10px;
-    border-radius: 16px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s, border-color 0.2s;
-}
-.list-item .li-like:hover {
-    background: #abacad4b;
-}
-.list-item .li-like.liked {
-    background: #ffe4e6;
-    color: #d32f2f;
-    border-color: #ffcdd2;
-}
-
-/* Bottone "indietro" nel pannello dettagli */
-.back-btn {
-    background: #e0e0e0;
-    color: #333;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.back-btn:hover { background: #cfcfcf; }

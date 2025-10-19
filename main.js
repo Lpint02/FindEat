@@ -2,6 +2,8 @@ import Router from "./router/Router.js";
 import LoginView from "./view/VLogin.js";
 import HomeView from "./view/Vhome.js";
 import HomeController from "./controller/HomeController.js";
+import VProfilo from "./view/Vprofilo.js";
+import ProfiloController from "./controller/ProfileController.js";
 
 // Service (accesso ai dati, API, Firebase, ecc.)
 //import AuthService from "./service/AuthService.js";
@@ -33,6 +35,18 @@ router.addRoute("/home", {
     view.router = routerInstance;
     // collega controller MVC
     const controller = new HomeController(view);
+    view.controller = controller;
+    return view;
+  }
+});
+
+router.addRoute("/profilo", {
+  html: "pages/profilo.html",
+  css: ["CSS/profilo.css"],
+  view: (routerInstance) => {
+    const view = new VProfilo();
+    view.router = routerInstance;
+    const controller = new ProfiloController(view);
     view.controller = controller;
     return view;
   }

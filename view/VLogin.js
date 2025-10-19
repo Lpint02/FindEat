@@ -19,7 +19,7 @@ export default class LoginView
 
     // Collego gli eventi al presenter
     this.submitButton.addEventListener("click", (e) => {
-        e.preventDefault(); // previene il comportamento di default del form
+        e.preventDefault(); // previene il comportamento di default del form di mandare una richiesta HTTP
         this.router.navigate("/home");
     });
   }
