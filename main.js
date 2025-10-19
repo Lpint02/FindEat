@@ -1,7 +1,7 @@
 import Router from "./router/Router.js";
 import LoginView from "./view/VLogin.js";
 import HomeView from "./view/Vhome.js";
-import HomeController from "./controller/Chome.js";
+import HomeController from "./controller/HomeController.js";
 
 // Service (accesso ai dati, API, Firebase, ecc.)
 //import AuthService from "./service/AuthService.js";
@@ -35,6 +35,7 @@ router.addRoute("/home", {
   view: (routerInstance) => {
     const view = new HomeView();
     view.router = routerInstance;
+    // collega controller MVC
     const controller = new HomeController(view);
     view.controller = controller;
     return view;

@@ -1,189 +1,437 @@
-import * as L from 'https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js';
-import { createRestaurantMarker, selectedIcon, defaultIcon } from "../map/markerManager.js";
-import { renderRestaurantList } from "./listPanel.js";
-import { renderDetailPanel, showListPanel } from "./detailPanel.js";
-import { haversineKm } from "../map/geo.js";
-import HomeController from "../controller/Chome.js"
+// popup template inlined into Vhome (map folder should not own UI templates)
 
-export default class HomeView 
-{
+export default class Vhome {
   //costruttore
   constructor() {
-    this.controller = null; // sarà assegnato dalle rotte in main.js
-    this.router = null;    // sarà assegnato dalle rotte in main.js
+    this.controller = null; // HomeController
+    this.router = null;    // sarà assegnato da main.js
+    this.listContainer = null;
+    this.backBtn = null;
+    // Stato mappa/ui
+    this.map = null;
+    this.userMarker = null;
     this.markers = new Map();
     this.selected = null;
-    this.map = null;
+
+    this.defaultIcon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41]
+    });
+    this.selectedIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+      iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41]
+    });
   }
 
   /**
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
   init() {
-    const statusDiv = document.getElementById("status");
-    if( "geolocation" in navigator) // navigation è un oggetto del browser, geolocation una sua proprietà
-    {
-      navigator.geolocation.getCurrentPosition(this.#showMap.bind(this), this.#showError.bind(this));
+        // Aggancia elementi UI
+        this.listContainer = document.getElementById('listView');
+        this.backBtn = document.getElementById('dpBackToList');
+        if (this.backBtn) {
+          this.backBtn.addEventListener('click', () => this.controller?.onBack());
+        }
+        // Avvia il controller dell'area Home
+        if (this.controller && typeof this.controller.init === 'function') {
+          this.controller.init();
+        }
+  }
+
+  // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
+  bindDetailPanelEventsOnce() {
+    if (this._detailBindingsInitialized) return;
+    this._detailBindingsInitialized = true;
+
+    // Like button
+    const likeBtn = document.getElementById('dpLikeBtn');
+    if (likeBtn && !likeBtn.__bound) {
+      if (!likeBtn.querySelector('span')) {
+        likeBtn.textContent = '';
+        const sp = document.createElement('span');
+        sp.textContent = '♡';
+        likeBtn.appendChild(sp);
+      }
+      likeBtn.addEventListener('click', () => {
+        likeBtn.classList.toggle('liked');
+        const sp = likeBtn.querySelector('span');
+        if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+      });
+      likeBtn.__bound = true;
     }
-    else
-    {
-      statusDiv.innerText = "❌ Geolocalizzazione non supportata dal browser.";
+
+    // Prev/Next buttons
+    const prevBtn = document.getElementById('dpPrevPhoto');
+    if (prevBtn && !prevBtn.__bound) {
+      prevBtn.addEventListener('click', () => this.controller?.onPrevPhoto && this.controller.onPrevPhoto());
+      prevBtn.__bound = true;
+    }
+    const nextBtn = document.getElementById('dpNextPhoto');
+    if (nextBtn && !nextBtn.__bound) {
+      nextBtn.addEventListener('click', () => this.controller?.onNextPhoto && this.controller.onNextPhoto());
+      nextBtn.__bound = true;
+    }
+
+    // Keyboard shortcuts (global once)
+    if (!window.__dp_kb_bound) {
+      document.addEventListener('keydown', (e) => {
+        const detailView = document.getElementById('detailView');
+        if (!detailView || detailView.classList.contains('hidden')) return;
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          this.controller?.onPrevPhoto && this.controller.onPrevPhoto();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          this.controller?.onNextPhoto && this.controller.onNextPhoto();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          if (this.controller?.onBack) this.controller.onBack(); else document.getElementById('dpBackToList')?.click();
+        } else if (e.key === 'l' || e.key === 'L') {
+          // Toggle like
+          document.getElementById('dpLikeBtn')?.click();
+        }
+      });
+      window.__dp_kb_bound = true;
     }
   }
 
-  async #showMap(pos) 
-  {   
-    const statusDiv = document.getElementById("status");
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    // raggio d'azione in metri
-    const radius = 10000;
-    statusDiv.innerText = `✅ Posizione trovata! Cerco ristoranti entro ${radius} m...`;
+  // La view rende la lista e gestisce i click utente, notificando il controller via callback
+  renderList(items, onSelect) {
+    const container = this.listContainer;
+    if (!container) return;
+    container.innerHTML = '';
+    if (!items || !items.length) {
+      container.innerHTML = '<div>Nessun ristorante trovato nell\'area selezionata.</div>';
+      return;
+    }
+    for (const el of items) {
+      const name = el.tags?.name || 'Ristorante senza nome';
+      const distance = el.__distanceKm != null ? `${el.__distanceKm.toFixed(1)} km` : '';
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <h3 class="li-title" style="margin:0;">${name}</h3>
+            <div class="li-meta">${distance}</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="like-btn li-like" title="Mi piace" aria-label="Mi piace">♡</button>
+            <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
+          </div>
+        </div>
+      `;
+      div.querySelector('.li-details').addEventListener('click', (e) => { e.stopPropagation(); onSelect && onSelect(el); });
+      const likeBtn = div.querySelector('.li-like');
+      likeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        likeBtn.classList.toggle('liked');
+        likeBtn.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+      });
+      div.addEventListener('click', () => onSelect && onSelect(el));
+      container.appendChild(div);
+    }
+  }
 
-    // inizializzazione mappa
-    this.map = this.#initMap("map", [lat, lon], radius);
-    
-    // Marker posizione utente: usa pin rosso standard + tooltip "Sei qui"   
+  // La view mostra i dettagli
+  showDetails(data, fallbackName, el) {
+    const detailView = document.getElementById('detailView');
+    const listView = document.getElementById('listView');
+    if (!detailView || !listView) return;
+    listView.classList.add('hidden');
+    detailView.classList.remove('hidden');
+    document.body.classList.add('detail-mode');
+    const statusDiv = document.getElementById('status');
+    if (statusDiv) statusDiv.style.display = 'none';
+
+    const titleEl = document.getElementById('dpTitle');
+    const baseName = data?.name || fallbackName || (el?.tags?.name ?? 'Dettagli ristorante');
+    let openBadge = '';
+    const openNow = (data?.open_now !== undefined ? data.open_now : (data?.opening_hours?.open_now));
+    if (openNow !== undefined) {
+      openBadge = `<span class="open-badge ${openNow ? 'open' : 'closed'}">${openNow ? 'Aperto' : 'Chiuso'}</span>`;
+    }
+    titleEl.innerHTML = `${baseName} ${openBadge}`;
+
+    const img = document.getElementById('dpCurrentPhoto');
+    const noPhotoMsg = document.getElementById('dpNoPhotoMsg');
+    this._photosArray = data?.photos || [];
+    if (this._photosArray.length) {
+      img.style.display = 'block';
+      noPhotoMsg.style.display = 'none';
+      this._showPhoto(0);
+    } else {
+      img.style.display = 'none';
+      noPhotoMsg.style.display = 'block';
+      img.src = '';
+    }
+
+    const detailsEl = document.getElementById('dpDetails');
+    const tags = el?.tags || {};
+    const g = data || {};
+    const distanceKm = typeof el.__distanceKm === 'number' ? `${el.__distanceKm.toFixed(1)} km` : null;
+    const price = g.price_level != null ? '€'.repeat(g.price_level || 1) : null;
+    const rating = g.rating != null ? g.rating.toFixed(1) : null;
+    const totalRatings = g.user_ratings_total != null ? g.user_ratings_total : null;
+    const addr = g.formatted_address || null;
+    const phone = g.international_phone_number || tags.phone || null;
+    const website = g.website || tags.website || null;
+    const cuisine = tags.cuisine || null;
+    const wheelchair = (g.wheelchair_accessible_entrance || tags.wheelchair === 'yes') ? '♿ Accessibile' : null;
+    const outdoor = tags.outdoor_seating === 'yes' ? '🌤️ Esterno' : null;
+    const smoking = tags.smoking === 'yes' ? '🚬 Fumatori' : (tags.smoking === 'no' ? '🚭 Non fumatori' : null);
+    const vegetarian = g.serves_vegetarian_food ? '🥦 Veg options' : null;
+    const breakfast = g.serves_breakfast ? '🍳 Colazione' : null;
+    const lunch = g.serves_lunch ? '🍝 Pranzo' : null;
+    const dinner = g.serves_dinner ? '🍽️ Cena' : null;
+    const dineIn = g.dine_in === false ? null : '🪑 Sala';
+    const delivery = g.delivery ? '🚚 Delivery' : null;
+    const takeout = g.takeout ? '🥡 Asporto' : null;
+    const reservable = g.reservable ? '📅 Prenotabile' : null;
+    const email = tags.email ? `✉️ ${tags.email}` : null;
+    const facebook = tags['contact:facebook'] ? `ⓕ Facebook` : null;
+    const instagram = tags['contact:instagram'] ? `📸 Instagram` : null;
+    const dietVegan = tags['diet:vegan'] === 'yes' ? '🌱 Vegan' : null;
+    const dietVegetarian = tags['diet:vegetarian'] === 'yes' ? '🥗 Vegetarian' : null;
+    const dietGlutenFree = tags['diet:gluten_free'] === 'yes' ? '🚫🌾 Gluten-free' : null;
+    const cards = (tags['payment:cards'] === 'yes' || tags['payment:credit_cards'] === 'yes') ? '💳 Carte' : null;
+    const cash = tags['payment:cash'] === 'no' ? null : (tags['payment:cash'] === 'yes' ? '💶 Contanti' : null);
+
+    const chipMeta = [
+      { label: distanceKm, cat: 'meta' }, { label: price, cat: 'meta' },
+      { label: wheelchair, cat: 'access' }, { label: vegetarian, cat: 'diet' },
+      { label: breakfast, cat: 'service' }, { label: lunch, cat: 'service' }, { label: dinner, cat: 'service' },
+      { label: outdoor, cat: 'service' }, { label: smoking, cat: 'service' }, { label: dineIn, cat: 'service' },
+      { label: delivery, cat: 'service' }, { label: takeout, cat: 'service' }, { label: reservable, cat: 'service' },
+      { label: dietVegan, cat: 'diet' }, { label: dietVegetarian, cat: 'diet' }, { label: dietGlutenFree, cat: 'diet' },
+      { label: cards, cat: 'pay' }, { label: cash, cat: 'pay' }
+    ];
+    const chips = chipMeta.filter(o => o.label).map(o => `<span class="chip" data-cat="${o.cat}">${o.label}</span>`).join('');
+    const contactLines = [
+      addr ? `<div class="fact"><span class="icon">📍</span><span>${addr}</span></div>` : '',
+      phone ? `<div class="fact"><span class="icon">📞</span><span>${phone}</span></div>` : '',
+      website ? `<div class="fact"><span class="icon">🔗</span><a href="${website}" target="_blank" rel="noopener">Sito</a></div>` : '',
+      email ? `<div class="fact"><span class="icon">✉️</span><span>${email.replace('✉️ ','')}</span></div>` : '',
+      facebook ? `<div class="fact"><span class="icon">ⓕ</span><span>${facebook.replace('ⓕ ','')}</span></div>` : '',
+      instagram ? `<div class="fact"><span class="icon">📸</span><span>${instagram.replace('📸 ','')}</span></div>` : '',
+      cuisine ? `<div class="fact"><span class="icon">🍽️</span><span>${cuisine}</span></div>` : ''
+    ].filter(Boolean).join('');
+
+    const hoursSource = g.opening_hours_weekday_text || g.opening_hours || tags.opening_hours;
+    const hoursHtml = hoursSource ? `<div class="hours-block">${this.renderOpeningHoursHTML(hoursSource)}</div>` : '';
+    const editorial = g.editorial_summary?.overview ? `<div class="editorial"><p>${g.editorial_summary.overview}</p></div>` : '';
+
+    detailsEl.innerHTML = `
+      <section class="chips-section">${chips}</section>
+      <section class="card info-card">
+        <h3 class="card-title">Info</h3>
+        <div class="facts-grid">${contactLines}</div>
+      </section>
+      ${hoursHtml ? `<section class=\"card hours-card\">${hoursHtml}</section>` : ''}
+      ${editorial ? `<section class=\"card editorial-card\">${editorial}</section>` : ''}
+    `;
+
+    this._renderStars(g?.rating, 'dpStars');
+    const ratingNumEl = document.getElementById('dpRatingNumber');
+    if (ratingNumEl) ratingNumEl.textContent = rating ? rating : '';
+
+    const reviewsListEl = document.getElementById('dpReviewsList');
+    const reviewsCount = document.getElementById('dpReviewsCount');
+    reviewsListEl.innerHTML = '';
+    if (data?.reviews?.length) {
+      data.reviews.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'review';
+        div.innerHTML = `<strong>${r.author_name || 'Anonimo'}</strong> ${r.rating ? ` - ⭐ ${r.rating}` : ''}<div>${r.text || ''}</div>`;
+        reviewsListEl.appendChild(div);
+      });
+      reviewsCount.textContent = `(${data.reviews.length})`;
+    } else {
+      reviewsListEl.innerHTML = '<div class="review">Nessuna recensione disponibile.</div>';
+      reviewsCount.textContent = '';
+    }
+
+    // Ensure the detail panel UI bindings (like, prev/next, keyboard) are attached once.
+    this.bindDetailPanelEventsOnce();
+  }
+
+  // La view torna alla lista
+  showList() {
+    const detailView = document.getElementById('detailView');
+    const listView = document.getElementById('listView');
+    if (!detailView || !listView) return;
+    detailView.classList.add('hidden');
+    listView.classList.remove('hidden');
+    document.body.classList.remove('detail-mode');
+    const statusDiv = document.getElementById('status');
+    if (statusDiv) statusDiv.style.display = '';
+  }
+
+  // Mappa: init e gestione marker/selezione (era in MapView)
+  initMap(center, radius) {
+    this.map = L.map('map').setView(center, 15);
+    if (this.map.zoomControl?.setPosition) this.map.zoomControl.setPosition('topright');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(this.map);
+    L.circle(center, { radius, color: "#1976d2", fillColor: "#64b5f6", fillOpacity: 0.12, weight: 1 }).addTo(this.map);
+  }
+  // Imposta il marker dell'utente (era in MapView)
+  setUserMarker(lat, lon) {
     const userMarkerIcon = L.icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
       iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25,41],
-      iconAnchor: [12,41],
-      popupAnchor: [1,-34],
-      tooltipAnchor: [16,-28],
-      shadowSize: [41,41]
+      iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], tooltipAnchor: [16,-28], shadowSize: [41,41]
     });
-
-    // Marker posizione utente
-    let userMarker = L.marker([lat, lon], { icon: userMarkerIcon, interactive: false }).addTo(this.map);
-
-    // Se in futuro riattivi le coordinate reali, puoi usare watchPosition per aggiornarlo
-    this.#watchUserPosition(userMarker);
-
-    this.controller = new HomeController(self);
-    const data = await this.controller.findrestaurants(radius, lat, lon);
-    if (!data.elements || !data.elements.length) 
-    { 
-      statusDiv.innerText = "😔 Nessun ristorante trovato."; 
-      return; 
-    }
-    statusDiv.innerText = `🍽️ Trovati ${data.elements.length} ristoranti!`;
-    // riordina i ristoranti in base alla distanza dall'utente
-    const elements = this.#distanceRestaurantSorted(data, lat, lon);
-            
-    this.markers = new Map(); // non è la mappa, intende la struttura dati Map!
-    this.selected=null;
-    
-    this.#setupBackButton();
-
-    // Crea marker con callback
+    if (!this.userMarker) this.userMarker = L.marker([lat, lon], { icon: userMarkerIcon, interactive: false }).addTo(this.map);
+    else this.userMarker.setLatLng([lat, lon]);
+  }
+  // Aggiorna la posizione dell'utente (era in MapView)
+  updateUserPosition(lat, lon) {
+    if (this.userMarker) this.userMarker.setLatLng([lat, lon]);
+  }
+  // La view può renderizzare i marker dei ristoranti sulla mappa (era in MapView)
+  renderMapRestaurants(elements, onSelect) {
+    for (const m of this.markers.values()) m.remove();
+    this.markers.clear();
     elements.forEach(el => {
-      const marker = createRestaurantMarker(this.map, el, this.#handleSelect.bind(this));
-      if (marker) this.markers.set(el.id, marker);
-    });
-    // Lista iniziale
-    const listContainer = document.getElementById('listView');
-    renderRestaurantList(listContainer, elements, (el) => {
-      const marker = this.markers.get(el.id);
-      if (marker) marker.fire('click');
+      const marker = this._createRestaurantMarker(this.map, el.raw ?? el, (payload) => this.onSelectMarker(payload, onSelect));
+      if (marker) this.markers.set((el.raw?.id ?? el.id), marker);
     });
   }
-
-  // Metodo privato per gestire errori geolocalizzazione
-  #showError(err) {
-    const statusDiv = document.getElementById("status");
-    statusDiv.innerText = "⚠️ Permesso posizione negato o errore GPS.";
-    alert("Consenti accesso alla posizione.");
-  }
-
-  // metodo privato per creare la mappa Leaflet
-  #initMap(mapId = "map", userCoords = [0,0], radius = 10000) 
-  {
-    const map = L.map(mapId).setView(userCoords, 15);
-    // Sposta i controlli di zoom in basso a sinistra per non sovrapporsi all'header
-    if (map.zoomControl && map.zoomControl.setPosition) 
-    {
-      map.zoomControl.setPosition('topright');
-    }  
-    
-    //Aggiunta tile layer OpenStreetMap e lo aggiungo alla mappa
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 
-    {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    /* Aggiungo sulla mappa l'area di ricerca con centro userCoords e raggio radius, 
-    *  più impostazione opacità e colore
-    */
-    L.circle(userCoords, { radius, color: "#1976d2", fillColor: "#64b5f6", fillOpacity: 0.12, weight:1 }).addTo(map);
-    
-    // Ritorna l'oggetto mappa
-    return map;
-  }
-
-  // Metodo privato per per aggiornare la posizione dell'utente
-  #watchUserPosition(userMarker) {
-    if (navigator.geolocation.watchPosition) {
-      try {
-        navigator.geolocation.watchPosition(p => {
-        const nLat = p.coords.latitude;
-        const nLon = p.coords.longitude;
-        userMarker.setLatLng([nLat, nLon]);
-        });
-      } catch(e){ /* silenzioso */ }
-    }
-  }
-
-  // Metodo privato per calcolare distanza e ordinare i ristoranti
-  #distanceRestaurantSorted(data, lat, lon) 
-  {
-    return data.elements.map(el => {
-      const eLat = el.lat ?? el.center?.lat;
-      const eLon = el.lon ?? el.center?.lon;
-      if (typeof eLat === 'number' && typeof eLon === 'number') 
-      {
-        el.__distanceKm = haversineKm(lat, lon, eLat, eLon);
-      } 
-      else 
-      {
-      el.__distanceKm = Number.POSITIVE_INFINITY;
-      }
-      return el;
-    }).sort((a, b) => (a.__distanceKm ?? Infinity) - (b.__distanceKm ?? Infinity));
-  }
-
-
-  #handleSelect({ data, fallbackName, el, location }) {
-    // reset icona precedente
+  // La view può selezionare un ristorante sulla mappa
+  onSelectMarker({ data, fallbackName, el, location }, externalSelect) {
     if (this.selected?.el?.id && this.selected.el.id !== el.id) {
       const prevMarker = this.markers.get(this.selected.el.id);
-      if (prevMarker) prevMarker.setIcon(defaultIcon);
+      if (prevMarker) prevMarker.setIcon(this.defaultIcon);
     }
     this.selected = { data, el, location };
-    // colora di rosso il marker selezionato
     const selMarker = this.markers.get(el.id);
-    if (selMarker) selMarker.setIcon(selectedIcon);
-    renderDetailPanel(data, fallbackName, el);
+    if (selMarker) selMarker.setIcon(this.selectedIcon);
     if (location?.lat && location?.lon) {
       this.map.setView([location.lat, location.lon], Math.max(this.map.getZoom(), 16));
     }
+    if (externalSelect) externalSelect({ data, fallbackName, el, location });
   }
 
-  // Metodo privato per impostare il bottone "Indietro" nel pannello dettaglio
-  #setupBackButton() {
-    const listContainer = document.getElementById('listView');
-    const backBtn = document.getElementById('dpBackToList');
-    if (backBtn) backBtn.addEventListener('click', () => {
-      if (this.selected?.el?.id) 
-      {
-        const prevMarker = this.markers.get(this.selected.el.id);
-        if (prevMarker) prevMarker.setIcon(defaultIcon);
-      }
-      this.selected = null;
-      showListPanel();
+  // UI-only factory to create a restaurant marker and emit a minimal payload when clicked
+  _createRestaurantMarker(map, el, onSelect) {
+    const lat = el.lat || el.center?.lat;
+    const lon = el.lon || el.center?.lon;
+    if (!lat || !lon) return;
+
+    const marker = L.marker([lat, lon], { icon: this.defaultIcon }).addTo(map);
+  const tooltipHtml = this._buildPopupHtml(el.tags || {});
+    marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -6], opacity: 0.95 });
+
+    marker.on('click', () => {
+      const name = el.tags?.name || null;
+      if (!name) return alert('Nessun nome per questo ristorante.');
+      if (onSelect) onSelect({ el, location: { lat, lon }, fallbackName: name });
     });
+
+    return marker;
+  }
+
+  // Inline popup HTML builder (moved from map/popupTemplate.js)
+  _buildPopupHtml(tags = {}) {
+    const name = tags.name || 'Ristorante senza nome';
+    const cuisine = tags.cuisine || 'Tipo sconosciuto';
+    const phone = tags.phone || 'N/D';
+    const website = tags.website ? `<a href="${tags.website}" target="_blank" rel="noopener">Sito web</a>` : 'N/D';
+    return `<b>${name}</b><br>🍽️ Cucina: ${cuisine}<br>📞 Telefono: ${phone}<br>🌐 ${website}`;
+  }
+
+  // La view può selezionare un ristorante dalla lista sulla mappa (era in MapView)
+  selectOnMapById(id) {
+    const m = this.markers.get(id);
+    if (m) m.fire('click');
+  }
+
+  // La view può ripulire la selezione (era in MapView)
+  clearMapSelection() {
+    if (this.selected?.el?.id) {
+      const prevMarker = this.markers.get(this.selected.el.id);
+      if (prevMarker) prevMarker.setIcon(this.defaultIcon);
+    }
+    this.selected = null;
+  }
+
+  // Helpers per stelle/orari/foto
+  _renderStars(value, containerId = 'stars') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    if (value == null) return;
+    const full = Math.floor(value);
+    const half = (value - full) >= 0.5;
+    for (let i = 0; i < 5; i++) {
+      const span = document.createElement('span');
+      span.className = 'star';
+      if (i < full) { span.innerText = '★'; span.style.color = '#FFD54A'; }
+      else if (i === full && half) {
+        span.innerText = '★';
+        span.style.background = 'linear-gradient(90deg,#FFD54A 50%, #ddd 50%)';
+        span.style.WebkitBackgroundClip = 'text';
+        span.style.backgroundClip = 'text';
+        span.style.color = 'transparent';
+      } else { span.innerText = '★'; span.style.color = '#ddd'; }
+      container.appendChild(span);
+    }
+  }
+
+  renderOpeningHoursHTML(opening) {
+    if (!opening) return '';
+    let lines = [];
+    if (Array.isArray(opening)) lines = opening.slice();
+    else if (typeof opening === 'string') lines = opening.includes('|') ? opening.split('|').map(s => s.trim()).filter(Boolean) : opening.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const dayMap = {};
+    lines.forEach(l => { const idx = l.indexOf(':'); if (idx > -1) dayMap[l.slice(0, idx).trim()] = l.slice(idx + 1).trim(); });
+    const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const displayNames = { 'Monday':'Lun','Tuesday':'Mar','Wednesday':'Mer','Thursday':'Gio','Friday':'Ven','Saturday':'Sab','Sunday':'Dom' };
+    const variants = {
+      'Monday': ['Monday','Mon','Luned','Lunedì','Lunedi','Lun'],
+      'Tuesday': ['Tuesday','Tue','Mart','Martedì','Martedi','Mar'],
+      'Wednesday': ['Wednesday','Wed','Mercoledì','Mercoledi','Mer'],
+      'Thursday': ['Thursday','Thu','Giovedì','Giovedi','Gio'],
+      'Friday': ['Friday','Fri','Venerdì','Venerdi','Ven'],
+      'Saturday': ['Saturday','Sat','Sabato','Sab'],
+      'Sunday': ['Sunday','Sun','Domenica','Dom']
+    };
+    const todayIndex = new Date().getDay();
+    const todayKey = todayIndex === 0 ? 'Sunday' : daysOrder[todayIndex - 1];
+    const boxes = daysOrder.map(day => {
+      let found = null;
+      for (const k in dayMap) {
+        for (const v of variants[day]) { if (k.toLowerCase().startsWith(v.toLowerCase())) { found = dayMap[k]; break; } }
+        if (found) break;
+      }
+      let display = 'Chiuso';
+      if (found) display = /chiuso|closed/i.test(found) ? 'Chiuso' : found.replace(/–/g,'-');
+      const todayClass = day === todayKey ? ' today' : '';
+      return `<div class="hours-box${todayClass}"><div class="hours-day">${displayNames[day]}</div><div class="hours-interval">${display}</div></div>`;
+    }).join('');
+    return `<div class="hours-grid">${boxes}</div>`;
+  }
+
+  _showPhoto(index) {
+    const img = document.getElementById('dpCurrentPhoto');
+    if (!img || !this._photosArray || this._photosArray.length === 0) return;
+    this._currentPhotoIndex = (index + this._photosArray.length) % this._photosArray.length;
+    img.src = this._photosArray[this._currentPhotoIndex];
   }
 }
 
