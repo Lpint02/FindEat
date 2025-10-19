@@ -78,6 +78,20 @@
 .review { background:#fff; border:1px solid #eee; border-radius:10px; padding:10px 12px; line-height:1.4; box-shadow:0 3px 10px -4px rgba(0,0,0,0.06); }
 .review + .review { margin-top:10px; }
 
+/* Add review button */
+.add-review-btn {
+  margin-left: auto;
+  background: #111;
+  color: #fff;
+  border: 1px solid #111;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.add-review-btn:hover { opacity: 0.9; }
+
 /* Chip categories (future ready) */
 .chip { position:relative; }
 .chip[data-cat="service"] { background:#e6f3ff; border-color:#d1e9fa; }
@@ -158,8 +172,9 @@
       background: rgba(0, 0, 0, 0.8);
       justify-content: center;
       align-items: center;
-.hours-block h4 { display:none; }
     }
+
+    .hours-block h4 { display:none; }
  
     #photoModalContent {
       position: relative;
@@ -307,6 +322,29 @@
     /* Stelle nel header recensioni */
     #stars { display:inline-block; vertical-align:middle; margin-right:8px; margin-left: 8px;}
     .star { display:inline-block; vertical-align:middle; font-size:22px; margin-right:6px; line-height:1; }
+
+    /* Add review form */
+    .add-review-form { display:flex; flex-direction:column; gap:10px; background:#fff; border:1px solid #eee; border-radius:10px; padding:12px; }
+    .add-review-form .arf-row { display:flex; align-items:center; gap:10px; }
+    .add-review-form label { width: 120px; font-weight:600; font-size:13px; color:#333; }
+    .add-review-form input[type="text"],
+    .add-review-form input[type="number"],
+    .add-review-form textarea {
+      flex: 1 1 auto;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px;
+    }
+    .add-review-form textarea { resize: vertical; }
+    .arf-stars { display:flex; gap:6px; }
+    .arf-star { font-size: 22px; background: transparent; border: none; cursor: pointer; color: #ddd; line-height: 1; padding: 0 2px; }
+    .arf-star.active { color: #FFD54A; }
+    .arf-actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 4px; }
+    .btn-secondary { background:#f3f3f3; border:1px solid #ddd; padding:6px 10px; border-radius:8px; cursor:pointer; }
+    .btn-primary { background:#111; color:#fff; border:1px solid #111; padding:6px 12px; border-radius:8px; cursor:pointer; }
+    .btn-primary[disabled] { opacity: .6; cursor: not-allowed; }
 
     /* Font uniforme per dettagli e recensioni */
       /* Font uniforme per dettagli, header e recensioni */
