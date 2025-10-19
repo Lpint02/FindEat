@@ -1,3 +1,7 @@
+/* Pointer cursor for navbar links without href (in pratica metti la mano)*/
+.navbar-nav .nav-link:not([href]) {
+    cursor: pointer;
+}
 
 /* Bottoni Profilo e Logout in alto a sinistra */
 .bottoni.navigazione {
