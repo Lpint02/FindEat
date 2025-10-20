@@ -1,3 +1,5 @@
+import ProfiloController from "../controller/ProfileController.js";
+
 // popup template inlined into HomeView (map folder should not own UI templates)
 
 export default class HomeView {
@@ -43,8 +45,10 @@ export default class HomeView {
   /**
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
-  init() 
+  async init() 
   {
+    let utente = await new ProfiloController().fetchUserProfile();
+    console.log("IN STORAGE:",localStorage);
     // Aggancia elementi UI
     this.listContainer = document.getElementById('listView');
     this.backBtn = document.getElementById('dpBackToList');
