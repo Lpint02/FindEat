@@ -1,7 +1,7 @@
 
 export default class User {
-    constructor(name, email){
-        this.id = null; // sarà assegnato dal database
+    constructor(uid, email, name){
+        this.uid = uid;
         this.name = name;
         this.email = email;
     }

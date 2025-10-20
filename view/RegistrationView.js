@@ -20,7 +20,7 @@ export default class RegistrationView {
       const password2 = document.getElementById('regPassword2').value;
 
       if (this.controller && typeof this.controller.handleRegistration === 'function' && password === password2) {
-        this.controller.handleRegistration(email, password);
+        this.controller.handleRegistration(email, password, name);
       } else {
         console.error('controller.handleRegistration non definito');
       }

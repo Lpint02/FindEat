@@ -7,13 +7,14 @@ export default class AuthService {
 
   // metodo statico per la registrazione
   static async register(email, password) {
+    console.log("AuthService: Tentativo di registrazione con email:", email);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log("Registrazione eseguita con successo:", userCredential.user.email);
-      return true;
+      return { success: true, user: userCredential.user };
     } catch (error) {
       console.error("Errore nella registrazione:", error.message);
-      return false;
+      return { success: false };
     }
   }
 
