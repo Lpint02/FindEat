@@ -13,4 +13,16 @@ export default class LoginController {
       console.log("Login fallito");
     }
   }
+
+  async handleFacebookLogin() {
+    console.log("Tentativo di login con Facebook");
+    const success = await AuthService.loginWithFacebook();
+    if (success) {
+      console.log("Login corretto, vai alla home");
+      this.router.navigate("/home");
+    } else {
+      alert("Credenziali errate, riprova.");
+      console.log("Login fallito");
+    }
+  }
 }

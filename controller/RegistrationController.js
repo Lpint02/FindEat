@@ -1,9 +1,18 @@
+import AuthService from "../services/AuthService.js";
+
 export default class RegistrationController {
 
-    //Costruttore della classe RegistrationController
-    constructor() {
-        this.router = null; // Router instance
-        this.view = null;   // RegistrationView instance
-    }
+    async handleRegistration(email, password) {
+        console.log("Tentativo di registrazione con:", email, password);
+        const success = await AuthService.register(email, password);
+        if (success) {
+          console.log("Registrazione avvenuta con successo");
+          this.router.navigate("/home");
+        } else {
+          alert("Credenziali errate, riprova.");
+          console.log("Registrazione fallita");
+        }
+      }
+
 
 }

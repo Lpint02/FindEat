@@ -18,12 +18,12 @@ export default class RegistrationView {
       const email = document.getElementById('regEmail').value;
       const password = document.getElementById('regPassword').value;
       const password2 = document.getElementById('regPassword2').value;
-      // Qui puoi gestire la registrazione
-      // if (this.controller && typeof this.controller.handleRegistration === 'function') {
-      //   this.controller.handleRegistration(name, email, password, password2);
-      // } else {
-      //   console.error('controller.handleRegistration non definito');
-      // }
+
+      if (this.controller && typeof this.controller.handleRegistration === 'function' && password === password2) {
+        this.controller.handleRegistration(email, password);
+      } else {
+        console.error('controller.handleRegistration non definito');
+      }
     });
 
     // Listener click su "Accedi" per navigazione SPA
@@ -37,4 +37,5 @@ export default class RegistrationView {
       });
     }
   }
+
 }

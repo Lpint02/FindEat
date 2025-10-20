@@ -34,6 +34,10 @@ export default class LoginView
       e.preventDefault();
       this.router.navigate("/registrazione");
     });
+
+
   }
+
+  
 
 }
