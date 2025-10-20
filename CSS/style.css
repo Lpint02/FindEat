@@ -36,15 +36,15 @@
 .list-item {
   border: 1px solid #cfcfcf;
   border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: 14px; /* was 10px: slightly taller for breathing room */
+  margin-bottom: 12px; /* a touch more separation between items */
   cursor: pointer;
   /* transition: box-shadow .2s ease, transform .05s ease; */
 }
 .list-item:hover { box-shadow: 0 2px 8px rgb(0, 0, 0); }
 .list-item:active { transform: scale(0.995); }
-.li-title { font-weight: 600; margin: 0 0 4px; font-size: 25px; }
-.li-meta { color: #555; font-size: 17px; }
+.li-title { font-weight: 600; padding-bottom: 15px; font-size: 25px; }
+.li-meta { color: #555; font-size: 17px; line-height: 1.4; }
 
 /* Detail view */
 #detailView { overflow: visible; display: flex; flex-direction: column; height: auto; }
@@ -67,7 +67,7 @@
 
 /* Cards */
 .card { background:#fff; border:1px solid #ececec; border-radius:14px; padding:16px 18px 18px; margin:18px 12px 0; box-shadow:0 4px 18px -6px rgba(0,0,0,0.06); }
-.card-title { margin:0 0 12px; font-size:16px; letter-spacing:.6px; font-weight:650; text-transform:uppercase; color:#333; font-family:'Poppins',sans-serif; }
+.card-title { margin:0 0 12px; font-size:18px; letter-spacing:.6px; font-weight:700; font-size: 20px; text-transform:uppercase; color:#333; font-family:'Poppins',sans-serif; }
 .chips-section { margin:14px 12px 0; padding:4px 4px 0; }
 .facts-grid { margin-top:4px; }
 
@@ -84,13 +84,14 @@
   background: #111;
   color: #fff;
   border: 1px solid #111;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 18px;
   line-height: 1;
 }
 .add-review-btn:hover { opacity: 0.9; }
+#dpReviewsLabel { font-size: 22px; font-weight: 600; color: #111; }
 
 /* Chip categories (future ready) */
 .chip { position:relative; }
@@ -112,7 +113,7 @@
 
 /* Detail enhanced */
 .chips-row { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px; }
-.chip { background:linear-gradient(135deg,#f7f8fa,#eceef3); border:1px solid #d9dde3; padding:5px 11px; font-size:12px; border-radius:22px; font-weight:500; color:#1e1e24; box-shadow:0 1px 2px rgba(0,0,0,0.06); }
+.chip { background:linear-gradient(135deg,#f7f8fa,#eceef3); border:1px solid #d9dde3; padding:6px 12px; font-size:13px; border-radius:24px; font-weight:600; color:#1e1e24; box-shadow:0 1px 2px rgba(0,0,0,0.06); }
 .chip:hover { background:linear-gradient(135deg,#ffffff,#e6eaf0); }
 .open-badge { display:inline-block; margin-left:6px; padding:3px 8px; font-size:11px; font-weight:600; border-radius:6px; vertical-align:middle; letter-spacing:.5px; }
 .open-badge.open { background:#e0f8eb; color:#118a3a; border:1px solid #8dd8af; }
@@ -122,12 +123,13 @@
 .detail-mode .leaflet-tooltip { display:none !important; }
 .rating-summary { font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .rating-summary .price { opacity:0.8; }
-.facts-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px 20px; margin-bottom:8px; font-size:13.5px; line-height:1.35; }
+.facts-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px 22px; margin-bottom:10px; font-size:15px; line-height:1.45; }
 @media (max-width: 760px){ .facts-grid { grid-template-columns: 1fr; } }
 .fact { display:flex; align-items:flex-start; gap:8px; position:relative; padding:4px 2px; border-radius:6px; }
 .fact:hover { background:#f4f6f9; }
-.fact .icon { width:20px; text-align:center; opacity:0.78; font-size:14px; }
-.hours-block { margin:14px 0; padding:10px 12px; background:#fafafa; border:1px solid #eee; border-radius:8px; }
+.fact .icon { width:22px; text-align:center; opacity:0.78; font-size:22px; }
+.fact .fact-text { font-size: 20px; font-weight: 500; }
+.hours-block { margin:16px 0; padding:12px 14px; background:#fafafa; border:1px solid #eee; border-radius:10px; }
 .hours-block h4 { margin:0 0 6px; font-size:14px; letter-spacing:.5px; text-transform:uppercase; font-weight:600; }
 .hours-box.today { background:#e9f8ff; border-color:#b9e6f7; box-shadow:0 0 0 2px rgba(0,153,255,0.15); }
 .hours-box.today .hours-day { color:#0077b6; }
@@ -291,23 +293,24 @@
       font-weight:600;
       cursor:pointer;
       user-select:none;
-      padding: 6px 0;
+      padding: 8px 0;
       color: #111;
     }
 
     .reviews-header { cursor: default; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-    .reviews-header .rating-number { font-weight:600; font-size:14px; background:#111; color:#fff; padding:2px 6px; border-radius:6px; }
-    .reviews-count { font-size:12px; opacity:0.7; }
+  .reviews-header .section-label { font-size: 25px; font-weight: 700; margin-right: 14px; }
+    .reviews-header .rating-number { font-weight:700; font-size:16px; background:#111; color:#fff; padding:3px 8px; border-radius:6px; }
+    .reviews-count { font-size: 18px; opacity:0.7; }
 
     .reviews-list { padding-right: 6px; margin-top: 6px; display: flex; flex-direction: column; gap: 10px; }
 
     /* rimosso collapsed/expanded */
 
     .review {
-        background: #f6f6f6;
-        padding: 8px;
-        border-radius: 6px;
-        font-size: 14px;
+        background: #f6f6f6; /* keep the gray box style the user likes */
+        padding: 14px 16px; /* more breathing room */
+        border-radius: 10px;
+        font-size: 18px; /* larger base text for the comment */
         color: #111;
         border: 1px solid #e6e6e6;
       }
@@ -319,9 +322,48 @@
         background: none;
       }
 
+    /* Enhanced review header with avatar */
+    .review-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between; /* place stars to the right */
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .review-id { display:flex; align-items:center; gap:10px; }
+    .review-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      background: #fff;
+      flex: 0 0 48px;
+    }
+    .review-avatar.fallback {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #666;
+      background: #fafafa;
+    }
+    .review-header-text { display: flex; flex-direction: column; }
+    .review-author { font-weight: 700; font-size: 20px; color: #111; text-decoration: none; }
+    .review-author:hover { text-decoration: underline; }
+    .review-time { font-size: 14px; color: #666; }
+
+    /* Stars row */
+  .review-stars { display: flex; align-items: center; gap: 4px; margin: 0; }
+    .review-stars .star { font-size: 30px; line-height: 1; }
+    .review-stars .star.on { color: #FFD54A; margin: 0 0 0 0; }
+    .review-stars .star.off { color: #ddd; }
+    .review-rating-number { font-weight: 800; color: #111; font-size: 16px; }
+    .review-text { white-space: pre-wrap; }
+
     /* Stelle nel header recensioni */
     #stars { display:inline-block; vertical-align:middle; margin-right:8px; margin-left: 8px;}
-    .star { display:inline-block; vertical-align:middle; font-size:22px; margin-right:6px; line-height:1; }
+    .star { display:inline-block; vertical-align:middle; font-size:30px; margin-right:6px; line-height:1; }
 
     /* Add review form */
     .add-review-form { display:flex; flex-direction:column; gap:10px; background:#fff; border:1px solid #eee; border-radius:10px; padding:12px; }
@@ -365,29 +407,28 @@
       /* Opening hours 7-day grid */
       .hours-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-        gap: 6px;
-        margin-top: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 8px;
+        margin-top: 10px;
         width: 100%;
       }
       .hours-box {
         background: #fafafa;
         border: 1px solid #eee;
-        border-radius: 6px;
-        padding: 6px;
+        border-radius: 8px;
+        padding: 8px;
         text-align: center;
-        font-size: 12px;
         color: #111;
       }
-      .hours-day { font-weight: 700; margin-bottom: 4px; }
-      .hours-interval { color: #333; font-size: 12px; }
+      .hours-day { font-weight: 800; margin-bottom: 6px; font-size: 18px; }
+      .hours-interval { color: #333; font-size: 17px; }
 
       @media (max-width: 800px) {
-        .hours-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+        .hours-grid { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
       }
       @media (max-width: 480px) {
         .hours-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
-        .hours-box { padding: 8px; font-size: 11px; }
+        .hours-box { padding: 8px; font-size: 12px; }
       }
 
 

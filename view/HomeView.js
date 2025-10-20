@@ -235,28 +235,26 @@ export default class HomeView {
     for (const el of items) {
       // el è Restaurant
       const name = el.name || el.tags?.name || 'Ristorante senza nome';
-      const distance = typeof el.distanceKm === 'number' ? `${el.distanceKm.toFixed(1)} km` : '';
+      const distance = (typeof el.distanceKm === 'number' && isFinite(el.distanceKm)) ? `${el.distanceKm.toFixed(1)} km` : '';
+      const tags = el.tags || {};
+      const phoneRaw = (tags.phone || tags['contact:phone'] || '').trim();
+      const phone = phoneRaw ? `📞 ${phoneRaw}` : '';
+      const metaParts = [distance, phone || null].filter(Boolean);
+      const metaLine = metaParts.join(' · ');
       const div = document.createElement('div');
       div.className = 'list-item';
       div.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div>
             <h3 class="li-title" style="margin:0;">${name}</h3>
-            <div class="li-meta">${distance}</div>
+            <div class="li-meta">${metaLine}</div>
           </div>
           <div style="display:flex; gap:8px;">
-            <button class="like-btn li-like" title="Mi piace" aria-label="Mi piace">♡</button>
             <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
           </div>
         </div>
       `;
       div.querySelector('.li-details').addEventListener('click', (e) => { e.stopPropagation(); onSelect && onSelect(el); });
-      const likeBtn = div.querySelector('.li-like');
-      likeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        likeBtn.classList.toggle('liked');
-        likeBtn.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
-      });
       div.addEventListener('click', () => onSelect && onSelect(el));
       container.appendChild(div);
     }
@@ -339,13 +337,13 @@ export default class HomeView {
     ];
     const chips = chipMeta.filter(o => o.label).map(o => `<span class="chip" data-cat="${o.cat}">${o.label}</span>`).join('');
     const contactLines = [
-      addr ? `<div class="fact"><span class="icon">📍</span><span>${addr}</span></div>` : '',
-      phone ? `<div class="fact"><span class="icon">📞</span><span>${phone}</span></div>` : '',
+      addr ? `<div class="fact"><span class="icon">📍</span><span class="fact-text">${addr}</span></div>` : '',
+      phone ? `<div class="fact"><span class="icon">📞</span><span class="fact-text">${phone}</span></div>` : '',
       website ? `<div class="fact"><span class="icon">🔗</span><a href="${website}" target="_blank" rel="noopener">Sito</a></div>` : '',
-      email ? `<div class="fact"><span class="icon">✉️</span><span>${email.replace('✉️ ','')}</span></div>` : '',
-      facebook ? `<div class="fact"><span class="icon">ⓕ</span><span>${facebook.replace('ⓕ ','')}</span></div>` : '',
-      instagram ? `<div class="fact"><span class="icon">📸</span><span>${instagram.replace('📸 ','')}</span></div>` : '',
-      cuisine ? `<div class="fact"><span class="icon">🍽️</span><span>${cuisine}</span></div>` : ''
+      email ? `<div class="fact"><span class="icon">✉️</span><span class="fact-text">${email.replace('✉️ ','')}</span></div>` : '',
+      facebook ? `<div class="fact"><span class="icon">ⓕ</span><span class="fact-text">${facebook.replace('ⓕ ','')}</span></div>` : '',
+      instagram ? `<div class="fact"><span class="icon">📸</span><span class="fact-text">${instagram.replace('📸 ','')}</span></div>` : '',
+      cuisine ? `<div class="fact"><span class="icon">🍽️</span><span class="fact-text">${cuisine}</span></div>` : ''
     ].filter(Boolean).join('');
 
     const hoursSource = g.opening_hours_weekday_text || g.opening_hours || tags.opening_hours;
@@ -369,11 +367,40 @@ export default class HomeView {
     const reviewsListEl = document.getElementById('dpReviewsList');
     const reviewsCount = document.getElementById('dpReviewsCount');
     reviewsListEl.innerHTML = '';
-    if (data?.reviews?.length) {
+    if (Array.isArray(data?.reviews) && data.reviews.length) {
       data.reviews.forEach(r => {
+        const name = r.author_name || 'Anonimo';
+        const url = r.author_url || null;
+        const avatar = r.profile_photo_url || '';
+        const rating = (typeof r.rating === 'number' && isFinite(r.rating)) ? r.rating : null;
+        const rounded = rating != null ? Math.max(0, Math.min(5, Math.round(rating))) : null;
+        const relTime = r.relative_time_description || '';
+        const text = r.text || '';
+
+        const starsHtml = this._buildReviewStars(rating);
+        const nameHtml = url ? `<a href="${url}" target="_blank" rel="noopener" class="review-author">${name}</a>`
+                             : `<span class="review-author">${name}</span>`;
+        const avatarHtml = avatar ? `<img class="review-avatar" src="${avatar}" alt="Foto profilo di ${name}">`
+                                  : `<div class="review-avatar fallback" aria-hidden="true">👤</div>`;
+        const rightCluster = (rounded != null)
+          ? `<div class="review-stars">${starsHtml}<span class="review-rating-number">(${rounded})</span></div>`
+          : '';
+
         const div = document.createElement('div');
         div.className = 'review';
-        div.innerHTML = `<strong>${r.author_name || 'Anonimo'}</strong> ${r.rating ? ` - ⭐ ${r.rating}` : ''}<div>${r.text || ''}</div>`;
+        div.innerHTML = `
+          <div class="review-header">
+            <div class="review-id">
+              ${avatarHtml}
+              <div class="review-header-text">
+                ${nameHtml}
+                ${relTime ? `<div class="review-time">${relTime}</div>` : ''}
+              </div>
+            </div>
+            ${rightCluster}
+          </div>
+          <div class="review-text">${text}</div>
+        `;
         reviewsListEl.appendChild(div);
       });
       reviewsCount.textContent = `(${data.reviews.length})`;
@@ -688,6 +715,16 @@ export default class HomeView {
     if (!img || !this._photosArray || this._photosArray.length === 0) return;
     this._currentPhotoIndex = (index + this._photosArray.length) % this._photosArray.length;
     img.src = this._photosArray[this._currentPhotoIndex];
+  }
+
+  // Build 5-star inline HTML for a numeric rating (round to nearest whole star)
+  _buildReviewStars(value) {
+    const r = (typeof value === 'number' && isFinite(value)) ? Math.max(0, Math.min(5, Math.round(value))) : 0;
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      html += `<span class="star ${i <= r ? 'on' : 'off'}">★</span>`;
+    }
+    return html;
   }
 }
 

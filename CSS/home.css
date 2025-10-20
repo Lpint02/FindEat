@@ -111,21 +111,25 @@ body {
     box-shadow: 0 2px 8px rgba(44,62,80,0.10);
     font-size: 1.25rem;
     min-height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
 }
-    .navbar .navbar-brand {
-        color: #fff !important;
-        font-size: clamp(28px, 4vw, 42px); /* brand più grande dei bottoni */
-        font-weight: 700;
-        padding-top: 10px;
-        padding-bottom: 10px;
-    }
-    .navbar .nav-link {
-        color: #fff !important;
-        font-size: clamp(16px, 2.6vw, 22px);
-        font-weight: 600;
-        padding-top: 10px;
-        padding-bottom: 10px;
-    }
+.navbar .navbar-brand {
+    color: #fff !important;
+    font-size: clamp(28px, 4vw, 42px); /* brand più grande dei bottoni */
+    font-weight: 700;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+.navbar .nav-link {
+    color: #fff !important;
+    font-size: clamp(16px, 2.6vw, 22px);
+    font-weight: 600;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
 .navbar .nav-link.active {
     font-weight: 600;
     text-shadow: 0 1px 6px rgba(44,62,80,0.10);
