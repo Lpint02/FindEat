@@ -23,10 +23,10 @@ export default class AuthService {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Login eseguito con successo:", userCredential.user.email);
-      return true;
+      return { success: true, user: userCredential.user };
     } catch (error) {
       console.error("Errore nel login:", error.message);
-      return false;
+      return { success: false };
     }
   }
 

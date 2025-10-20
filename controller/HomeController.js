@@ -267,6 +267,7 @@ export default class HomeController {
     let result = await AuthService.logout();
     if (result) {
       console.log("Logout avvenuto con successo");
+      localStorage.clear();
       this.router.navigate("/");
     } else {
       console.log("Logout fallito");
