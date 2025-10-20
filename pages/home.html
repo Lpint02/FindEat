@@ -27,6 +27,10 @@
 
   <div id="layout">
     <aside id="leftPanel" aria-live="polite">
+      <!-- Spinner locale pannello sinistro (lista/dettagli) -->
+      <div id="leftSpinner" class="panel-spinner hidden" aria-live="polite" aria-label="Caricamento lista">
+        <div class="spinner"></div>
+      </div>
       <!-- Barra filtri -->
       <div id="filtersBar" class="filters-grid">
         <div class="filters-title-row">
@@ -90,6 +94,9 @@
 
     <div id="map" role="region" aria-label="Mappa dei ristoranti">
       <div id="status">📍 Recupero la tua posizione...</div>
+      <div id="mapSpinner" class="panel-spinner hidden" aria-live="polite" aria-label="Caricamento mappa">
+        <div class="spinner"></div>
+      </div>
     </div>
   </div>
 
