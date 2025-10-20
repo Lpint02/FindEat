@@ -2,7 +2,7 @@ import GeolocationService from "../services/GeolocationService.js";
 import OverpassService from "../services/OverpassService.js";
 import Restaurant from "../model/Restaurant.js";
 import GooglePlacesService from "../services/GooglePlacesService.js";
-import FirebaseService from "../services/FirestoreService.js";
+import FirestoreService from "../services/FirestoreService.js";
 import AuthService from "../services/AuthService.js";
 
 export default class HomeController {
@@ -85,7 +85,7 @@ export default class HomeController {
       // Render markers and list (view handles UI bindings)
       try {
         this._placesService = new GooglePlacesService();
-        this._firebase = new FirebaseService();
+        this._firebase = new FirestoreService();
         this.view.renderMapRestaurants(restaurants, (payload) => this.handleMarkerClick(payload));
         this.view.renderList(restaurants, (el) => this.onListSelect(el));
       } catch (renderErr) {
