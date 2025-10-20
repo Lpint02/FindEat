@@ -2,7 +2,7 @@ import GeolocationService from "../services/GeolocationService.js";
 import OverpassService from "../services/OverpassService.js";
 import Restaurant from "../model/Restaurant.js";
 import GooglePlacesService from "../services/GooglePlacesService.js";
-import FirebaseService from "../services/FirebaseService.js";
+import FirebaseService from "../services/FirestoreService.js";
 import AuthService from "../services/AuthService.js";
 
 export default class HomeController {

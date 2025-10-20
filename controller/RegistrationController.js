@@ -1,5 +1,5 @@
 import AuthService from "../services/AuthService.js";
-import FirebaseService from "../services/FirebaseService.js";
+import FirebaseService from "../services/FirestoreService.js";
 
 export default class RegistrationController {
 

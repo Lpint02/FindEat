@@ -1,6 +1,6 @@
-// popup template inlined into Vhome (map folder should not own UI templates)
+// popup template inlined into HomeView (map folder should not own UI templates)
 
-export default class Vhome {
+export default class HomeView {
   //costruttore
   constructor() {
     this.controller = null; // HomeController
@@ -52,12 +52,13 @@ export default class Vhome {
     if (areaPersonaleLink) {
       areaPersonaleLink.addEventListener('click', (e) => {
       e.preventDefault();
-      // Qui puoi chiamare il controller o il router
+
       if (this.router && typeof this.router.navigate === 'function') 
       {
+        //this.controller.handleProfile();
         this.router.navigate('/profilo'); // esempio: route "profilo"
-      } 
-      else 
+      }
+      else
       {
         console.log('Area Personale cliccata');
       }
