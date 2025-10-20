@@ -12,7 +12,7 @@ function getDb() {
   return dbInstance;
 }
 
-export default class FirebaseService {
+export default class FirestoreService {
   async getById(collection, id) {
     if (!id) return null;
     try {

@@ -1,13 +1,15 @@
-export default class VProfilo {
+import ProfileController from "../controller/ProfileController.js";
+
+export default class ProfileView {
 
     constructor() {
-        this.router = null; // Router instance
+        this.router = new ProfileController(); // Router instance
         this.controller = null; // Controller instance
     }
 
     init() 
     {
-        console.log("VProfilo initialized");
+        console.log("ProfileView initialized");
         // Seleziona il link Home nella navbar in modo robusto
         const homeLink = [...document.querySelectorAll('.navbar-nav .nav-link')].find(el => el.textContent.trim() === 'Home');
         if (homeLink) {
@@ -18,7 +20,7 @@ export default class VProfilo {
                 if (this.router) {
                     this.router.navigate("/home");
                 } else {
-                    console.error("Router non definito in VProfilo");
+                    console.error("Router non definito in ProfileView");
                 }
             });
         }

@@ -1,5 +1,5 @@
 import AuthService from "../services/AuthService.js";
-import FirebaseService from "../services/FirebaseService.js";
+import FirestoreService from "../services/FirestoreService.js";
 
 export default class RegistrationController {
 
@@ -11,7 +11,7 @@ export default class RegistrationController {
 
           //Salvo sul db l'utente (mail e nome)
             try { 
-                const firebase = new FirebaseService();
+                const firebase = new FirestoreService();
                 const toSaveRaw = { email: email, name: name };
                 const toSave = JSON.parse(JSON.stringify(toSaveRaw)); // strip undefined
                 await firebase.saveById('User', user.uid, toSave);

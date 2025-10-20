@@ -1,9 +1,9 @@
 import Router from "./router/Router.js";
 import LoginView from "./view/LoginView.js";
 import LoginController from "./controller/LoginController.js";
-import HomeView from "./view/Vhome.js";
+import HomeView from "./view/HomeView.js";
 import HomeController from "./controller/HomeController.js";
-import VProfilo from "./view/Vprofilo.js";
+import ProfileView from "./view/ProfileView.js";
 import ProfiloController from "./controller/ProfileController.js";
 import RegistrationView from "./view/RegistrationView.js";
 import RegistrationController from "./controller/RegistrationController.js";
@@ -46,7 +46,7 @@ router.addRoute("/profilo", {
   html: "pages/profilo.html",
   css: ["CSS/profilo.css"],
   view: (routerInstance) => {
-    const view = new VProfilo();
+    const view = new ProfileView();
     view.router = routerInstance;
     const controller = new ProfiloController(view);
     controller.router = routerInstance;
