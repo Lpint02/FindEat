@@ -16,13 +16,18 @@ export default class HomeController {
     this._filters = { liked: false, reviewed: false, distanceKm: 5 };
     this._lastUserPos = null;
     this._restaurants = [];
+    this._abortController = null;
   }
 
   async init(filters) {
     if (filters) this._filters = { ...this._filters, ...filters };
     const statusDiv = document.getElementById("status");
+    const mapSpinner = document.getElementById('mapSpinner');
+    const leftSpinner = document.getElementById('leftSpinner');
     try {
       if (statusDiv) statusDiv.innerText = "📍 Recupero la tua posizione...";
+      if (mapSpinner) mapSpinner.classList.remove('hidden');
+      if (leftSpinner) leftSpinner.classList.remove('hidden');
 
       // Get current position with a dedicated try/catch to surface precise geolocation errors
       let pos;
@@ -33,6 +38,8 @@ export default class HomeController {
         // If the geolocation service returned a synthetic fallback, inform the user
         if (pos && pos.isFallback && statusDiv) {
           statusDiv.innerText = '⚠️ Geolocalizzazione non disponibile: usiamo una posizione predefinita (L\'Aquila).';
+        } else if (pos && pos.isCached && statusDiv) {
+          statusDiv.innerText = 'ℹ️ Posizione recente usata (in attesa di precisione).';
         }
       } catch (geoErr) {
         console.error('HomeController: geolocation error', geoErr);
@@ -100,25 +107,29 @@ export default class HomeController {
       if (statusDiv) statusDiv.innerText = "⚠️ Errore durante l'inizializzazione.";
       console.error('HomeController: unexpected error in init', err);
       alert(`Errore inizializzazione: ${err?.message || err}`);
-    }
+    } finally { if (mapSpinner) mapSpinner.classList.add('hidden'); if (leftSpinner) leftSpinner.classList.add('hidden'); }
   }
 
   async applyFilters(filters) {
     // Merge and re-fetch
     this._filters = { ...this._filters, ...filters };
-    const statusDiv = document.getElementById('status');
+  const statusDiv = document.getElementById('status');
+  const mapSpinner = document.getElementById('mapSpinner');
+  const leftSpinner = document.getElementById('leftSpinner');
     if (!this._lastUserPos) return; // safety
   const { lat, lon } = this._lastUserPos;
   const kmApply = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
   const radius = kmApply * 1000;
     if (statusDiv) statusDiv.innerText = `🔄 Aggiorno risultati entro ${radius} m...`;
+  if (mapSpinner) mapSpinner.classList.remove('hidden');
+  if (leftSpinner) leftSpinner.classList.remove('hidden');
     // Update map radius circle (view keeps persistent map)
     try {
       this.view.initMap([lat, lon], radius);
       this.view.setUserMarker(lat, lon);
     } catch(e) { /* ignore */ }
 
-    const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
+  const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
     if (!Array.isArray(restaurants) || restaurants.length === 0) {
       if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
       return;
@@ -126,11 +137,18 @@ export default class HomeController {
     if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
     this.view.renderMapRestaurants(restaurants, (payload) => this.handleMarkerClick(payload));
     this.view.renderList(restaurants, (el) => this.onListSelect(el));
+    if (mapSpinner) mapSpinner.classList.add('hidden');
+    if (leftSpinner) leftSpinner.classList.add('hidden');
   }
 
   async _loadRestaurants(lat, lon, radius, statusDiv) {
     try {
-      const elements = await this.overpass.fetchRestaurants(lat, lon, radius);
+      // Cancel previous in-flight Overpass request if any
+      if (this._abortController) {
+        try { this._abortController.abort(); } catch {}
+      }
+      this._abortController = new AbortController();
+      const elements = await this.overpass.fetchRestaurants(lat, lon, radius, { signal: this._abortController.signal });
       const list = elements.map(Restaurant.fromOverpass);
       for (const r of list) r.computeDistance(lat, lon);
       list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));

@@ -36,6 +36,7 @@ export default class Router
       return;
     }
     console.log(`Caricamento rotta: ${path}`, route);
+  // Global spinner rimosso: usiamo spinner di sezione per pagina
     
     // carica e applica CSS della rotta (rimuove CSS della rotta precedente)
     this.#unloadCurrentCss();
@@ -45,28 +46,32 @@ export default class Router
     console.log("CSS caricati:", this.currentCss);
     
     // fetcha la pagina HTML
-    const resp = await fetch(route.html, { cache: "no-cache" });
-    if (!resp.ok) {
-      this.root.innerHTML = "<h2>Errore caricamento pagina</h2>";
-      return;
-    }
-    const html = await resp.text();
-    this.root.innerHTML =""; // pulisce il contenuto precedente
-    this.root.innerHTML = html;  // è qui che l'HTML viene inserito nel DOM
-    console.log(window.location.pathname);
-    console.log("view:", route.view);
-    // inizializza la view (se fornita)
-    if (route.view) {
-      // view può accettare il router come dipendenza: new route.view(this, altri service)
-      const view = route.view(this);
-      console.log("View creata:", view);
-      if (view && typeof view.init === "function") {
-        // view.init() viene chiamato dopo che l'HTML è stato inserito nel DOM
-        view.init();
+  try {
+      const resp = await fetch(route.html, { cache: "no-cache" });
+      if (!resp.ok) {
+        this.root.innerHTML = "<h2>Errore caricamento pagina</h2>";
+        return;
       }
-    }
-    else{
-      console.warn("NON SI é CREATA LA VIEW!")
+      const html = await resp.text();
+      this.root.innerHTML =""; // pulisce il contenuto precedente
+      this.root.innerHTML = html;  // è qui che l'HTML viene inserito nel DOM
+      console.log(window.location.pathname);
+      console.log("view:", route.view);
+      // inizializza la view (se fornita)
+      if (route.view) {
+        // view può accettare il router come dipendenza: new route.view(this, altri service)
+        const view = route.view(this);
+        console.log("View creata:", view);
+        if (view && typeof view.init === "function") {
+          // view.init() viene chiamato dopo che l'HTML è stato inserito nel DOM
+          await view.init?.();
+        }
+      }
+      else{
+        console.warn("NON SI é CREATA LA VIEW!")
+      }
+    } finally {
+      // Nessuno spinner globale da nascondere
     }
   }
 
