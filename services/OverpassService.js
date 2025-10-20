@@ -10,7 +10,7 @@ export default class OverpassService {
     out center;`;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 50000);
+    const timer = setTimeout(() => controller.abort(), 100000);
     try {
       const res = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: query, signal: controller.signal });
       const data = await res.json();

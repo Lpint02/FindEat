@@ -13,9 +13,13 @@ export default class HomeController {
     this.watchId = null;
     this._placesService = null;
     this._firebase = null;
+    this._filters = { liked: false, reviewed: false, distanceKm: 5 };
+    this._lastUserPos = null;
+    this._restaurants = [];
   }
 
-  async init() {
+  async init(filters) {
+    if (filters) this._filters = { ...this._filters, ...filters };
     const statusDiv = document.getElementById("status");
     try {
       if (statusDiv) statusDiv.innerText = "📍 Recupero la tua posizione...";
@@ -37,10 +41,12 @@ export default class HomeController {
         return;
       }
 
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const radius = 10000;
-      if (statusDiv) statusDiv.innerText = `✅ Posizione trovata! Cerco ristoranti entro ${radius} m...`;
+  const lat = pos.coords.latitude;
+  const lon = pos.coords.longitude;
+  this._lastUserPos = { lat, lon };
+  const kmInit = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
+  const radius = kmInit * 1000;
+  if (statusDiv) statusDiv.innerText = `✅ Posizione trovata! Cerco ristoranti entro ${radius} m...`;
 
       // Initialize the map and user marker (defensive: check view exists)
       try {
@@ -63,18 +69,7 @@ export default class HomeController {
       }
 
       // Load restaurants (network call) and render UI
-      let restaurants = [];
-      try {
-        const elements = await this.overpass.fetchRestaurants(lat, lon, radius);
-        restaurants = elements.map(Restaurant.fromOverpass);
-        for (const r of restaurants) r.computeDistance(lat, lon);
-        restaurants.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
-      } catch (loadErr) {
-        console.error('HomeController: errore caricando i ristoranti', loadErr);
-        if (statusDiv) statusDiv.innerText = '⚠️ Errore caricando i dati dei ristoranti.';
-        return;
-      }
-
+      const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
       if (!Array.isArray(restaurants) || restaurants.length === 0) {
         if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
         return;
@@ -105,6 +100,47 @@ export default class HomeController {
       if (statusDiv) statusDiv.innerText = "⚠️ Errore durante l'inizializzazione.";
       console.error('HomeController: unexpected error in init', err);
       alert(`Errore inizializzazione: ${err?.message || err}`);
+    }
+  }
+
+  async applyFilters(filters) {
+    // Merge and re-fetch
+    this._filters = { ...this._filters, ...filters };
+    const statusDiv = document.getElementById('status');
+    if (!this._lastUserPos) return; // safety
+  const { lat, lon } = this._lastUserPos;
+  const kmApply = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
+  const radius = kmApply * 1000;
+    if (statusDiv) statusDiv.innerText = `🔄 Aggiorno risultati entro ${radius} m...`;
+    // Update map radius circle (view keeps persistent map)
+    try {
+      this.view.initMap([lat, lon], radius);
+      this.view.setUserMarker(lat, lon);
+    } catch(e) { /* ignore */ }
+
+    const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
+    if (!Array.isArray(restaurants) || restaurants.length === 0) {
+      if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
+      return;
+    }
+    if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
+    this.view.renderMapRestaurants(restaurants, (payload) => this.handleMarkerClick(payload));
+    this.view.renderList(restaurants, (el) => this.onListSelect(el));
+  }
+
+  async _loadRestaurants(lat, lon, radius, statusDiv) {
+    try {
+      const elements = await this.overpass.fetchRestaurants(lat, lon, radius);
+      const list = elements.map(Restaurant.fromOverpass);
+      for (const r of list) r.computeDistance(lat, lon);
+      list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+      this._restaurants = list;
+      // Note: liked/reviewed filters are UI-only placeholders for now
+      return list;
+    } catch (loadErr) {
+      console.error('HomeController: errore caricando i ristoranti', loadErr);
+      if (statusDiv) statusDiv.innerText = '⚠️ Errore caricando i dati dei ristoranti.';
+      return [];
     }
   }
 

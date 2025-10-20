@@ -27,23 +27,32 @@
 
   <div id="layout">
     <aside id="leftPanel" aria-live="polite">
-      <!-- Barra filtri (UI-only, senza logica) -->
-      <div id="filtersBar" class="filters" style="display:flex; gap:12px; align-items:center; padding:8px 12px; border-bottom:1px solid #eee;">
-        <span class="filters-title">Filtri</span>
-          <div class="filters-center">
-            <label class="filter-label">
-          <input type="checkbox" id="fltLiked" />
-          <span class="filter-text">Solo liked</span>
-        </label>
-            <label class="filter-label">
-          <input type="checkbox" id="fltReviewed" />
-          <span class="filter-text">Solo recensiti</span>
-        </label>
-            </div>
-          <div class="filters-right">
-            <span id="filtersFlash" class="filters-flash" aria-live="polite" style="display:none;">(UI-only)</span>
-            <button id="applyFiltersBtn" type="button" class="filters-apply-btn">Applica filtri</button>
-          </div>
+      <!-- Barra filtri -->
+      <div id="filtersBar" class="filters-grid">
+        <div class="filters-title-row">
+          <span class="filters-title">Filtri</span>
+        </div>
+        <div class="filters-row filters-row-1">
+          <label class="filter-label">
+            <input type="checkbox" id="fltLiked" />
+            <span class="filter-text">Solo liked</span>
+          </label>
+          <label class="filter-label">
+            <input type="checkbox" id="fltReviewed" />
+            <span class="filter-text">Solo recensiti</span>
+          </label>
+        </div>
+        <div class="filters-row filters-row-2">
+          <label class="filter-label" style="width:100%; justify-content:center;">
+            <span class="filter-text" style="margin-right:10px;">Distanza</span>
+            <input type="range" id="fltDistance" min="1" max="10" step="1" value="5" aria-label="Distanza in chilometri" />
+            <span id="fltDistanceValue" class="filter-text" style="margin-left:10px; white-space:nowrap;">5 km</span>
+          </label>
+        </div>
+        <div class="filters-row filters-row-3">
+          <button id="resetFiltersBtn" type="button" class="filters-btn" disabled>Ripristina filtri</button>
+          <button id="applyFiltersBtn" type="button" class="filters-btn" disabled>Applica filtri</button>
+        </div>
       </div>
       <!-- Vista lista (default quando nessun ristorante è selezionato) -->
       <div id="listView"></div>
@@ -100,21 +109,6 @@
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
-
-      // UI-only feedback when clicking "Applica filtri"
-      const btn = document.getElementById('applyFiltersBtn');
-      const flash = document.getElementById('filtersFlash');
-      if (btn && flash) {
-        btn.addEventListener('click', () => {
-          flash.style.display = 'inline';
-          flash.textContent = '(filtri applicati - UI)';
-          flash.classList.add('flash-once');
-          setTimeout(() => {
-            flash.classList.remove('flash-once');
-            flash.style.display = 'none';
-          }, 900);
-        });
-      }
   </script>
 </body>
 </html>

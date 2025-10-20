@@ -11,7 +11,12 @@ export default class Vhome {
     this.map = null;
     this.userMarker = null;
     this.markers = new Map(); // id => marker (rosso o blu) popolata in renderMapRestaurants
-    this.selected = null;
+  this.selected = null;
+  this.radiusCircle = null;
+  // Filtri (UI state only; controller owns data fetch)
+  // Distanza ora selezionabile 1–10 km, default 5 km
+  this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
+    this._currentFilters = { ...this._defaultFilters };
 
     this.defaultIcon = L.icon({
       iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -79,12 +84,77 @@ export default class Vhome {
       });
     }
 
+    // Bind filtri UI
+    this._bindFiltersUI();
+
     // Avvia il controller dell'area Home
     if (this.controller && typeof this.controller.init === 'function') 
     {
-      this.controller.init();
+      this.controller.init(this._currentFilters);
     }
         
+  }
+
+  _bindFiltersUI() {
+    const liked = document.getElementById('fltLiked');
+    const reviewed = document.getElementById('fltReviewed');
+    const dist = document.getElementById('fltDistance');
+    const distValue = document.getElementById('fltDistanceValue');
+    const btnApply = document.getElementById('applyFiltersBtn');
+    const btnReset = document.getElementById('resetFiltersBtn');
+
+    if (!liked || !reviewed || !dist || !distValue || !btnApply || !btnReset) return;
+
+    // Initialize UI from current state
+    liked.checked = this._currentFilters.liked;
+    reviewed.checked = this._currentFilters.reviewed;
+    dist.value = String(this._currentFilters.distanceKm);
+    distValue.textContent = `${this._currentFilters.distanceKm} km`;
+    this._updateFilterButtonsState();
+
+    const onChange = () => {
+      this._currentFilters = {
+        liked: !!liked.checked,
+        reviewed: !!reviewed.checked,
+        distanceKm: parseInt(dist.value, 10)
+      };
+      distValue.textContent = `${this._currentFilters.distanceKm} km`;
+      this._updateFilterButtonsState();
+    };
+
+    liked.addEventListener('change', onChange);
+    reviewed.addEventListener('change', onChange);
+    dist.addEventListener('input', onChange);
+
+    btnReset.addEventListener('click', () => {
+      this._currentFilters = { ...this._defaultFilters };
+      liked.checked = this._currentFilters.liked;
+      reviewed.checked = this._currentFilters.reviewed;
+      dist.value = String(this._currentFilters.distanceKm);
+      distValue.textContent = `${this._currentFilters.distanceKm} km`;
+      this._updateFilterButtonsState();
+      // Inform controller to re-fetch with defaults
+      this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+    });
+
+    btnApply.addEventListener('click', () => {
+      this._updateFilterButtonsState(true); // disable right away
+      this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+    });
+  }
+
+  _filtersAreDefault() {
+    const a = this._defaultFilters, b = this._currentFilters;
+    return a.liked === b.liked && a.reviewed === b.reviewed && a.distanceKm === b.distanceKm;
+  }
+
+  _updateFilterButtonsState(disableNow = false) {
+    const btnApply = document.getElementById('applyFiltersBtn');
+    const btnReset = document.getElementById('resetFiltersBtn');
+    if (!btnApply || !btnReset) return;
+    const isDefault = this._filtersAreDefault();
+    btnApply.disabled = disableNow ? true : isDefault;
+    btnReset.disabled = isDefault;
   }
 
   // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
@@ -195,9 +265,11 @@ export default class Vhome {
   showDetails(data, fallbackName, el) {
     const detailView = document.getElementById('detailView');
     const listView = document.getElementById('listView');
+    const filtersBar = document.getElementById('filtersBar');
     if (!detailView || !listView) return;
     listView.classList.add('hidden');
     detailView.classList.remove('hidden');
+    if (filtersBar) filtersBar.classList.add('hidden');
     document.body.classList.add('detail-mode');
     const statusDiv = document.getElementById('status');
     if (statusDiv) statusDiv.style.display = 'none';
@@ -405,9 +477,11 @@ export default class Vhome {
   showList() {
     const detailView = document.getElementById('detailView');
     const listView = document.getElementById('listView');
+    const filtersBar = document.getElementById('filtersBar');
     if (!detailView || !listView) return;
     detailView.classList.add('hidden');
     listView.classList.remove('hidden');
+    if (filtersBar) filtersBar.classList.remove('hidden');
     document.body.classList.remove('detail-mode');
     const statusDiv = document.getElementById('status');
     if (statusDiv) statusDiv.style.display = '';
@@ -415,10 +489,60 @@ export default class Vhome {
 
   // Mappa: init e gestione marker/selezione (era in MapView)
   initMap(center, radius) {
-    this.map = L.map('map').setView(center, 15); 
-    if (this.map.zoomControl?.setPosition) this.map.zoomControl.setPosition('topright');
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(this.map);
-    L.circle(center, { radius, color: "#1976d2", fillColor: "#64b5f6", fillOpacity: 0.12, weight: 1 }).addTo(this.map);
+    const container = document.getElementById('map');
+    if (!container) return;
+    // Reuse cached map if present, otherwise ensure container is clean for a fresh init
+    if (!this.map) {
+      if (container.__leafletMapRef) {
+        this.map = container.__leafletMapRef;
+      } else {
+        // Fix sporadic 'Map container is already initialized' by resetting internal id
+        if (container._leaflet_id) {
+          try { container._leaflet_id = null; } catch(e) { /* ignore */ }
+        }
+        this.map = L.map(container).setView(center, 15);
+        container.__leafletMapRef = this.map;
+      }
+      if (this.map.zoomControl?.setPosition) this.map.zoomControl.setPosition('topright');
+      // Add tiles only once
+      if (!this._tilesLayerAdded) {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(this.map);
+        this._tilesLayerAdded = true;
+      }
+    } else {
+      this.map.setView(center, this.map.getZoom() || 15);
+    }
+    // Ensure single radius circle shared across instances
+    if (!this.radiusCircle) {
+      if (container.__radiusCircleRef) {
+        this.radiusCircle = container.__radiusCircleRef;
+      } else {
+        // Try to find an existing circle on the map (from previous view instances)
+        let found = null;
+        this.map.eachLayer(l => {
+          if (!found && l instanceof L.Circle) found = l;
+        });
+        if (found) {
+          this.radiusCircle = found;
+          container.__radiusCircleRef = found;
+        } else {
+          this.radiusCircle = L.circle(center, { radius, color: "#1976d2", fillColor: "#64b5f6", fillOpacity: 0.12, weight: 1 }).addTo(this.map);
+          container.__radiusCircleRef = this.radiusCircle;
+        }
+      }
+    }
+    // Update circle position and radius
+    if (this.radiusCircle) {
+      this.radiusCircle.setLatLng(center);
+      this.radiusCircle.setRadius(radius);
+    }
+    // Remove any duplicate circles beyond the primary one
+    const keep = this.radiusCircle;
+    const toRemove = [];
+    this.map.eachLayer(l => {
+      if (l instanceof L.Circle && l !== keep) toRemove.push(l);
+    });
+    toRemove.forEach(l => { try { l.remove(); } catch(e) { /* ignore */ } });
   }
   // Imposta il marker dell'utente (era in MapView)
   setUserMarker(lat, lon) {
