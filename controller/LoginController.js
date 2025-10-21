@@ -2,6 +2,11 @@ import AuthService from "../services/AuthService.js";
 
 export default class LoginController {
 
+  constructor() {
+        this.view = null;
+        this.router = null;
+    }
+
   async handleLogin(email, password) {
     console.log("Tentativo di login con:", email, password);
     const success = await AuthService.login(email, password);
