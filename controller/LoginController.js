@@ -15,12 +15,8 @@ export default class LoginController {
       console.log("Login corretto, vai alla home");
       this.router.navigate("/home");
     } else {
-      //const loginMessage = document.getElementById('loginMessage');
-      //loginMessage.textContent = "Credenziali errate, riprova.";
-      //alert("Credenziali errate, riprova.");
       const loginMessage = document.querySelector('p.text-white-50.mb-4');
       loginMessage.textContent = "Credenziali errate, riprova.";
-      //console.log(loginMessage);
       console.log("Login fallito");
     }
   }
