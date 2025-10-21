@@ -23,10 +23,12 @@ export default class AuthService {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Login eseguito con successo:", userCredential.user.email);
-      return { success: true, user: userCredential.user };
+      console.log("AuthService: Utente loggato:", userCredential.user);
+      return true;
     } catch (error) {
+      console.log("AuthService: Login fallito per email:", email);
       console.error("Errore nel login:", error.message);
-      return { success: false };
+      return false;
     }
   }
 
@@ -41,26 +43,5 @@ export default class AuthService {
       return false;
     }
   }
-
-static async loginWithFacebook() {
-    const provider = new FacebookAuthProvider();
-
-    try {
-        const result = await signInWithPopup(auth, provider);
-
-        const user = result.user;
-        const credential = FacebookAuthProvider.credentialFromResult(result);
-        const accessToken = credential?.accessToken;
-
-        console.log("Login Facebook riuscito:", user);
-        console.log("Access Token:", accessToken);
-
-        return true;  
-    } catch (error) {
-        console.error("Errore nel login Facebook:", error.message);
-        return false;
-    }
-}
-
 
 }
