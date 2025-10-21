@@ -44,4 +44,21 @@ export default class AuthService {
     }
   }
 
+  //metodo per eliminare l'utente dal servizio di autenticazione
+  static async deleteUser() {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        await user.delete();
+        console.log("Utente eliminato con successo");
+        return true;
+      } catch (error) {
+        console.error("Errore nell'eliminazione dell'utente:", error.message);
+        return false;
+      }
+    } else {
+      console.log("Nessun utente loggato");
+     return false;
+   }
+  }
 }

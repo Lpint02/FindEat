@@ -1,6 +1,6 @@
 import { app } from "./firebase-config.js";
 import { db } from "./firebase-config.js";
-import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 // Singleton DB
 let dbInstance = null;
@@ -13,6 +13,8 @@ function getDb() {
 }
 
 export default class FirestoreService {
+
+  // Metodo per recuperare un documento per ID
   async getById(collection, id) {
     if (!id) return null;
     try {
@@ -32,6 +34,7 @@ export default class FirestoreService {
     }
   }
 
+  // Metodo per salvare o aggiornare un documento per ID
   async saveById(collection, id, data) {
     try {
       const db = getDb();
@@ -40,6 +43,21 @@ export default class FirestoreService {
       return true;
     } catch (e) {
       console.error('Errore salvando documento:', e);
+      return false;
+    }
+  }
+
+  // Metodo per eliminare un documento per ID
+  async deleteById(collection, id) {
+    if (!id) return false;
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await deleteDoc(docRef);
+      console.log(`Documento ${id} eliminato con successo da ${collection}`);
+      return true;
+    } catch (e) {
+      console.error('Errore eliminando documento:', e);
       return false;
     }
   }
@@ -88,10 +106,13 @@ export default class FirestoreService {
   async getUserReviews(userID) {
     try {
       const db = getDb();
-      const q = query(collection(db, "Reviews"), where("authorID", "==", userID));
+      const q = query(collection(db, "Reviews"), where("AuthorID", "==", userID));
       const querySnapshot = await getDocs(q);
       const reviews = [];
-      querySnapshot.forEach(doc => reviews.push(doc.data()));
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        reviews.push({ ...data, firestoreId: docSnap.id });
+      });
       return reviews;
     } catch (e) {
       console.error("Errore recuperando recensioni:", e);

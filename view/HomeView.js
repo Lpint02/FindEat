@@ -71,7 +71,7 @@ export default class HomeView {
       {
         console.log('Area Personale cliccata');
       }
-          });
+    });
     }
 
     // Navbar: Logout event
