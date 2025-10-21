@@ -3,7 +3,12 @@ import FirestoreService from "../services/FirestoreService.js";
 
 export default class RegistrationController {
 
-    async handleRegistration(email, password, name) {
+    async handleRegistration(email, password, password2, name) {
+
+        if (password !== password2) {
+            alert("Le password non coincidono");
+            return;
+        }
         console.log("Tentativo di registrazione con:", email, password);
         const { success, user } = await AuthService.register(email, password);
         if (success) {
