@@ -25,14 +25,23 @@
 
   <!-- Profilo Utente -->
   <div class="profile-container">
-    <header class="profile-header">
-      <img id="profile-avatar" src="../images/person-circle.svg" alt="Foto utente" class="profile-avatar">
-      <div class="profile-info">
-        <h1 id="user-name" class="display-3 fw-bold">Matteo Maloni</h1>
-        <div id="user-email" class="text-muted small" style="font-size:1.1rem;">matteo@example.com</div>
+    <header class="profile-header d-flex align-items-center justify-content-between flex-wrap" style="gap:2rem;">
+      <div class="d-flex align-items-center" style="gap:1.5rem;">
+        <img id="profile-avatar" src="../images/person-circle.svg" alt="Foto utente" class="profile-avatar">
+        <div class="profile-info">
+          <h1 id="user-name" class="display-3 fw-bold mb-0">Matteo Maloni</h1>
+          <div id="user-email" class="text-muted small" style="font-size:1.1rem;">matteo@example.com</div>
+        </div>
+      </div>
+      <div class="profile-actions d-flex gap-3 mt-4 mt-md-0">
+        <button id="btn-edit-photo" class="btn btn-primary btn-lg px-5">Modifica foto</button>
+        <input type="file" id="input-photo" accept="image/*" style="display: none;">
+        <button id="btn-remove-photo" class="btn btn-secondary btn-lg px-5">Elimina foto</button>
+        <button id="btn-delete-profile" class="btn btn-danger btn-lg px-5">Cancella profilo</button>
       </div>
     </header>
 
+    <!-- Sezione Carosello Ristoranti Preferiti -->
     <section class="profile-section">
 
         <h2>I miei ristoranti preferiti</h2>
@@ -60,8 +69,17 @@
             <span class="carousel-control-next-icon" aria-hidden="true"></span>
             <span class="visually-hidden">Next</span>
        </button>
-  </div>
+
+    </section> 
+
+    <!-- Sezione Recensioni Utente -->
+    <section class="profile-section">
+      <h2>Le mie recensioni</h2>
+      <div id="reviews-container" class="row g-3">
+      </div>
     </section>
+    </div>
+    
   </div>
 </body>
 </html>

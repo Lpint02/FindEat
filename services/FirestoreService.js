@@ -1,6 +1,6 @@
 import { app } from "./firebase-config.js";
 import { db } from "./firebase-config.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 // Singleton DB
 let dbInstance = null;
@@ -13,6 +13,8 @@ function getDb() {
 }
 
 export default class FirestoreService {
+
+  // Metodo per recuperare un documento per ID
   async getById(collection, id) {
     if (!id) return null;
     try {
@@ -32,14 +34,89 @@ export default class FirestoreService {
     }
   }
 
+  // Metodo per salvare o aggiornare un documento per ID
   async saveById(collection, id, data) {
     try {
       const db = getDb();
-      await setDoc(doc(db, collection, id), data);
+      // Use merge: true to avoid overwriting fields not present in `data` (safe for partial writes)
+      await setDoc(doc(db, collection, id), data, { merge: true });
       return true;
     } catch (e) {
       console.error('Errore salvando documento:', e);
       return false;
+    }
+  }
+
+  // Metodo per eliminare un documento per ID
+  async deleteById(collection, id) {
+    if (!id) return false;
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await deleteDoc(docRef);
+      console.log(`Documento ${id} eliminato con successo da ${collection}`);
+      return true;
+    } catch (e) {
+      console.error('Errore eliminando documento:', e);
+      return false;
+    }
+  }
+
+  // Metodo per aggiornare un campo specifico di un documento
+  async updateFieldById(collection, id, field, value) {
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, { [field]: value });
+      console.log(`Campo "${field}" aggiornato con successo`);
+      return true;
+    } catch (e) {
+      console.error("Errore aggiornando campo:", e);
+      return false;
+    }
+  }
+
+  // Atomically add an element to an array field
+  async arrayUnionField(collection, id, field, element) {
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, { [field]: arrayUnion(element) });
+      return true;
+    } catch (e) {
+      console.error('Errore arrayUnion:', e);
+      return false;
+    }
+  }
+
+  // Atomically remove an element from an array field
+  async arrayRemoveField(collection, id, field, element) {
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, { [field]: arrayRemove(element) });
+      return true;
+    } catch (e) {
+      console.error('Errore arrayRemove:', e);
+      return false;
+    }
+  }
+
+  // Recupera tutte le recensioni di un utente
+  async getUserReviews(userID) {
+    try {
+      const db = getDb();
+      const q = query(collection(db, "Reviews"), where("AuthorID", "==", userID));
+      const querySnapshot = await getDocs(q);
+      const reviews = [];
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        reviews.push({ ...data, firestoreId: docSnap.id });
+      });
+      return reviews;
+    } catch (e) {
+      console.error("Errore recuperando recensioni:", e);
+      return [];
     }
   }
 }
