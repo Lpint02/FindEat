@@ -5,7 +5,6 @@ export default class LoginView
   //costruttore
   constructor() {
     this.controller = new LoginController();
-    this.presenter = null; // sarà assegnato da main.js
     this.router = null;    // sarà assegnato da main.js
   }
 

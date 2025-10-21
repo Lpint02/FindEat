@@ -2,6 +2,7 @@ import Router from "./router/Router.js";
 import LoginView from "./view/LoginView.js";
 import LoginController from "./controller/LoginController.js";
 import HomeView from "./view/HomeView.js";
+import GenericHomeView from "./view/GenericHomeView.js";
 import HomeController from "./controller/HomeController.js";
 import ProfileView from "./view/ProfileView.js";
 import ProfiloController from "./controller/ProfileController.js";
@@ -27,8 +28,22 @@ router.addRoute("/home", {
   }
 });
 
-//Rotta di login
+//Rotta di home generica (utente non loggato)
 router.addRoute("/", {
+  html: "pages/home.html",
+  css: ["CSS/home.css"],
+    view: (routerInstance) => {
+      const view = new GenericHomeView();
+      view.router = routerInstance;
+      const controller = new HomeController();
+      controller.router = routerInstance;
+      view.controller = controller;
+      return view;
+    }
+});
+
+//Rotta di login
+router.addRoute("/login", {
   html: "pages/login.html",
   css: ["CSS/login.css"],
     view: (routerInstance) => {
