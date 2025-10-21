@@ -57,4 +57,30 @@ export default class ProfiloController {
             console.log("Nessun utente loggato");
         }
     }
+
+    // metodo per controllare se l'utente ha la foto profilo
+    checkUserProfilePhoto() {
+
+        //Se l'utente è nel profilo, allora è loggato, controllo in sessione
+        const userPhoto = localStorage.getItem('userPhoto');
+        if (userPhoto) {
+            return {esito: true, photo: JSON.parse(userPhoto)};
+        }
+        else{
+            return {esito: false};
+        }
+    }
+ 
+    // metodo per impostare la foto profilo nell'interfaccia
+    setUserProfilePhoto() {
+    const userPhoto = localStorage.getItem('userPhoto');
+    if (userPhoto) {
+        // Carica l'immagine di profilo dell'utente
+        const img = document.getElementById('profile-avatar');
+        img.src = JSON.parse(userPhoto);
+        img.alt = 'Foto utente';
+    } else {
+        console.log("Nessuna foto profilo trovata");
+    }
+}
 }
