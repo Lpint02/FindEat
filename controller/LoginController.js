@@ -17,6 +17,8 @@ export default class LoginController {
     } else {
       const loginMessage = document.querySelector('p.text-white-50.mb-4');
       loginMessage.textContent = "Credenziali errate, riprova.";
+      loginMessage.classList.remove('text-white-50');
+      loginMessage.style.color = "#ff3333";
       console.log("Login fallito");
     }
   }
