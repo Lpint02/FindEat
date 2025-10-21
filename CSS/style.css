@@ -52,6 +52,9 @@ html, body {
 .li-title { font-weight: 600; padding-bottom: 15px; font-size: 25px; }
 .li-meta { color: #555; font-size: 17px; line-height: 1.4; }
 
+/* Inline small red heart shown in list items for liked restaurants */
+.li-liked { color: #e3002b; margin-right: 8px; margin-bottom: 10px; font-size: 20px; vertical-align: middle; pointer-events: none; }
+
 /* Detail view */
 #detailView { overflow: visible; display: flex; flex-direction: column; height: auto; }
 .dp-header { display:flex; align-items:center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #eee; }
@@ -134,7 +137,7 @@ html, body {
 .fact { display:flex; align-items:flex-start; gap:8px; position:relative; padding:4px 2px; border-radius:6px; }
 .fact:hover { background:#f4f6f9; }
 .fact .icon { width:22px; text-align:center; opacity:0.78; font-size:22px; }
-.fact .fact-text { font-size: 20px; font-weight: 500; }
+.fact .fact-text { font-size: 18px; font-weight: 500; }
 .hours-block { margin:16px 0; padding:12px 14px; background:#fafafa; border:1px solid #eee; border-radius:10px; }
 .hours-block h4 { margin:0 0 6px; font-size:14px; letter-spacing:.5px; text-transform:uppercase; font-weight:600; }
 .hours-box.today { background:#e9f8ff; border-color:#b9e6f7; box-shadow:0 0 0 2px rgba(0,153,255,0.15); }

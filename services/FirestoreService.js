@@ -1,6 +1,6 @@
 import { app } from "./firebase-config.js";
 import { db } from "./firebase-config.js";
-import { getFirestore, doc, getDoc, setDoc, query, collection, where, getDocs } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 // Singleton DB
 let dbInstance = null;
@@ -35,7 +35,8 @@ export default class FirestoreService {
   async saveById(collection, id, data) {
     try {
       const db = getDb();
-      await setDoc(doc(db, collection, id), data);
+      // Use merge: true to avoid overwriting fields not present in `data` (safe for partial writes)
+      await setDoc(doc(db, collection, id), data, { merge: true });
       return true;
     } catch (e) {
       console.error('Errore salvando documento:', e);
@@ -53,6 +54,32 @@ export default class FirestoreService {
       return true;
     } catch (e) {
       console.error("Errore aggiornando campo:", e);
+      return false;
+    }
+  }
+
+  // Atomically add an element to an array field
+  async arrayUnionField(collection, id, field, element) {
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, { [field]: arrayUnion(element) });
+      return true;
+    } catch (e) {
+      console.error('Errore arrayUnion:', e);
+      return false;
+    }
+  }
+
+  // Atomically remove an element from an array field
+  async arrayRemoveField(collection, id, field, element) {
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, { [field]: arrayRemove(element) });
+      return true;
+    } catch (e) {
+      console.error('Errore arrayRemove:', e);
       return false;
     }
   }

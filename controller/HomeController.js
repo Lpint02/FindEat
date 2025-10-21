@@ -4,6 +4,7 @@ import Restaurant from "../model/Restaurant.js";
 import GooglePlacesService from "../services/GooglePlacesService.js";
 import FirestoreService from "../services/FirestoreService.js";
 import AuthService from "../services/AuthService.js";
+import { auth } from "../services/firebase-config.js";
 
 export default class HomeController {
   constructor(view) {
@@ -16,6 +17,7 @@ export default class HomeController {
     this._filters = { liked: false, reviewed: false, distanceKm: 5 };
     this._lastUserPos = null;
     this._restaurants = [];
+    this._likedRestaurantIds = new Set();
     this._abortController = null;
   }
 
@@ -75,8 +77,19 @@ export default class HomeController {
         console.warn('HomeController: watchPosition failed', watchErr);
       }
 
-      // Load restaurants (network call) and render UI
+      // Initialize Firestore service and refresh liked set for current user (non-blocking)
+      try {
+        this._firebase = new FirestoreService();
+        // attempt to refresh liked set, ignore errors
+        try { await this._refreshLikedSet(); } catch(e) { console.warn('refreshLikedSet failed', e); }
+      } catch(e) { console.warn('Unable to init Firestore service early', e); }
+
+  // Load restaurants (network call) and render UI
       const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
+      // Annotate restaurants with docId and isLiked flag
+      for (const r of restaurants) {
+        try { const docId = this._computeDocIdFromRestaurant(r); r.docId = docId; r.isLiked = this._likedRestaurantIds.has(docId); } catch(e) { r.isLiked = false; }
+      }
       if (!Array.isArray(restaurants) || restaurants.length === 0) {
         if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
         return;
@@ -87,9 +100,10 @@ export default class HomeController {
       // Render markers and list (view handles UI bindings)
       try {
         this._placesService = new GooglePlacesService();
-        this._firebase = new FirestoreService();
-        this.view.renderMapRestaurants(restaurants, (payload) => this.handleMarkerClick(payload));
-        this.view.renderList(restaurants, (el) => this.onListSelect(el));
+        // Apply liked filter if active
+        const renderList = this._filters.liked ? restaurants.filter(r => r.isLiked) : restaurants;
+        this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
+        this.view.renderList(renderList, (el) => this.onListSelect(el));
       } catch (renderErr) {
         console.error('HomeController: errore rendering view', renderErr);
         if (statusDiv) statusDiv.innerText = '⚠️ Errore rendering UI.';
@@ -108,6 +122,103 @@ export default class HomeController {
       console.error('HomeController: unexpected error in init', err);
       alert(`Errore inizializzazione: ${err?.message || err}`);
     } finally { if (mapSpinner) mapSpinner.classList.add('hidden'); if (leftSpinner) leftSpinner.classList.add('hidden'); }
+  }
+
+  /**
+   * Toggle like for a given restaurant docId. This will:
+   * - ensure the restaurant doc exists (merge save when needed)
+   * - atomically add/remove the current user id to Restaurant.liked
+   * - atomically add/remove the restaurant id to User.likedRestaurants
+   * Returns { ok: true, liked: boolean } on success, or { ok: false, error }
+   */
+  async toggleLike(docId, restaurantPayload) {
+    try {
+      // Require auth
+      const user = auth.currentUser;
+      if (!user) return { ok: false, error: 'not-authenticated' };
+      const uid = user.uid;
+
+      // Ensure firebase service available
+      if (!this._firebase) this._firebase = new FirestoreService();
+
+      // Ensure restaurant document exists on first like (merge save is safe)
+      if (restaurantPayload) {
+        // Merge-save the basic payload (this will not remove existing fields)
+        await this._firebase.saveById('Restaurant', docId, restaurantPayload);
+      }
+
+      // Read current restaurant doc to decide add/remove
+      const saved = await this._firebase.getById('Restaurant', docId);
+      const likedArray = Array.isArray(saved?.liked) ? saved.liked : [];
+      const alreadyLiked = likedArray.includes(uid);
+
+      if (!alreadyLiked) {
+        // Add user id to Restaurant.liked and restaurant id to User.likedRestaurants
+        const p1 = this._firebase.arrayUnionField('Restaurant', docId, 'liked', uid);
+        const p2 = this._firebase.arrayUnionField('User', uid, 'likedRestaurants', docId);
+        await Promise.all([p1, p2]);
+        // update local set
+        this._likedRestaurantIds.add(docId);
+        return { ok: true, liked: true };
+      } else {
+        // Remove
+        const p1 = this._firebase.arrayRemoveField('Restaurant', docId, 'liked', uid);
+        const p2 = this._firebase.arrayRemoveField('User', uid, 'likedRestaurants', docId);
+        await Promise.all([p1, p2]);
+        // update local set
+        this._likedRestaurantIds.delete(docId);
+        return { ok: true, liked: false };
+      }
+    } catch (e) {
+      console.error('toggleLike error', e);
+      return { ok: false, error: e };
+    }
+  }
+
+  // Return saved restaurant doc (or null)
+  async getSavedRestaurant(docId) {
+    try {
+      if (!this._firebase) this._firebase = new FirestoreService();
+      return await this._firebase.getById('Restaurant', docId);
+    } catch (e) {
+      console.warn('getSavedRestaurant failed', e);
+      return null;
+    }
+  }
+
+  _computeDocIdFromRestaurant(r) {
+    // r.raw may contain type and id, otherwise fallback to stored docId
+    const raw = r.raw ?? r;
+    if (raw && raw.type && raw.id) return `osm_${raw.type}_${raw.id}`;
+    return r.docId || null;
+  }
+
+  async _refreshLikedSet() {
+    try {
+      const user = auth.currentUser;
+      this._likedRestaurantIds = new Set();
+      if (!user) return;
+      // Read user doc to get likedRestaurants array
+      if (!this._firebase) this._firebase = new FirestoreService();
+      const udoc = await this._firebase.getById('User', user.uid);
+      const arr = Array.isArray(udoc?.likedRestaurants) ? udoc.likedRestaurants : [];
+      for (const id of arr) this._likedRestaurantIds.add(id);
+    } catch (e) {
+      console.warn('Failed to refresh liked set', e);
+    }
+  }
+
+  // Returns true if current logged-in user has liked the restaurant
+  async isRestaurantLikedByCurrentUser(docId) {
+    try {
+      const user = auth.currentUser;
+      if (!user) return false;
+      const saved = await this.getSavedRestaurant(docId);
+      return Array.isArray(saved?.liked) && saved.liked.includes(user.uid);
+    } catch (e) {
+      console.warn('isRestaurantLikedByCurrentUser failed', e);
+      return false;
+    }
   }
 
   async applyFilters(filters) {
@@ -135,8 +246,13 @@ export default class HomeController {
       return;
     }
     if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
-    this.view.renderMapRestaurants(restaurants, (payload) => this.handleMarkerClick(payload));
-    this.view.renderList(restaurants, (el) => this.onListSelect(el));
+    // Annotate and filter by liked if required
+    for (const r of restaurants) {
+      try { const docId = this._computeDocIdFromRestaurant(r); r.docId = docId; r.isLiked = this._likedRestaurantIds.has(docId); } catch(e) { r.isLiked = false; }
+    }
+    const renderList = this._filters.liked ? restaurants.filter(r => r.isLiked) : restaurants;
+    this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
+    this.view.renderList(renderList, (el) => this.onListSelect(el));
     if (mapSpinner) mapSpinner.classList.add('hidden');
     if (leftSpinner) leftSpinner.classList.add('hidden');
   }

@@ -176,10 +176,56 @@ export default class HomeView {
         sp.textContent = '♡';
         likeBtn.appendChild(sp);
       }
-      likeBtn.addEventListener('click', () => {
-        likeBtn.classList.toggle('liked');
+      likeBtn.addEventListener('click', async () => {
+        // optimistic UI toggle
         const sp = likeBtn.querySelector('span');
+        likeBtn.classList.toggle('liked');
         if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+
+        // call controller to persist (controller.toggleLike must exist)
+        try {
+          const ctx = this._currentDetail || {};
+          const docId = ctx.docId;
+          const payload = ctx.payload || ctx.data || null;
+          if (!docId) {
+            console.warn('No docId available for like toggle');
+            return;
+          }
+          if (!this.controller || typeof this.controller.toggleLike !== 'function') {
+            console.warn('Controller.toggleLike not found');
+            return;
+          }
+          const res = await this.controller.toggleLike(docId, payload);
+          const likeChip = document.getElementById('dpLikeChip');
+          if (!res || !res.ok) {
+            // revert UI
+            likeBtn.classList.toggle('liked');
+            if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+            console.warn('toggleLike failed', res?.error);
+          } else {
+            // ensure final UI matches server and update likes chip
+            if (res.liked) {
+              likeBtn.classList.add('liked');
+              if (sp) sp.textContent = '♥';
+              if (likeChip) {
+                const cur = parseInt(likeChip.textContent, 10) || 0;
+                likeChip.textContent = `${cur + 1} ❤️`;
+              }
+            } else {
+              likeBtn.classList.remove('liked');
+              if (sp) sp.textContent = '♡';
+              if (likeChip) {
+                const cur = parseInt(likeChip.textContent, 10) || 0;
+                likeChip.textContent = `${Math.max(0, cur - 1)} ❤️`;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error toggling like', e);
+          // revert optimistic UI
+          likeBtn.classList.toggle('liked');
+          if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+        }
       });
       likeBtn.__bound = true;
     }
@@ -247,11 +293,18 @@ export default class HomeView {
       const metaLine = metaParts.join(' · ');
       const div = document.createElement('div');
       div.className = 'list-item';
+      const likedBadge = el.isLiked ? `<span class="li-liked" aria-hidden="true">♥</span>` : '';
+      // Put the heart next to the distance in the meta line (distance is usually the first meta part)
+      const metaWithLike = metaParts.length ?
+        [ (metaParts[0] ? `${likedBadge} ${metaParts[0]}` : likedBadge), ...metaParts.slice(1) ] :
+        (likedBadge ? [likedBadge] : []);
+      const metaLineWithLike = metaWithLike.join(' · ');
+
       div.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div>
             <h3 class="li-title" style="margin:0;">${name}</h3>
-            <div class="li-meta">${metaLine}</div>
+            <div class="li-meta">${metaLineWithLike}</div>
           </div>
           <div style="display:flex; gap:8px;">
             <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
@@ -339,11 +392,17 @@ export default class HomeView {
       { label: dietVegan, cat: 'diet' }, { label: dietVegetarian, cat: 'diet' }, { label: dietGlutenFree, cat: 'diet' },
       { label: cards, cat: 'pay' }, { label: cash, cat: 'pay' }
     ];
-    const chips = chipMeta.filter(o => o.label).map(o => `<span class="chip" data-cat="${o.cat}">${o.label}</span>`).join('');
+    // Likes count chip (show even if zero so position is stable)
+    const likesCount = Array.isArray(g?.liked) ? g.liked.length : (Array.isArray(el?.liked) ? el.liked.length : 0);
+    chipMeta.unshift({ label: `${likesCount} ❤️`, cat: 'meta', id: 'dpLikeChip' });
+    const chips = chipMeta.filter(o => o.label !== null && o.label !== undefined).map(o => {
+      const idAttr = o.id ? ` id="${o.id}"` : '';
+      return `<span class="chip" data-cat="${o.cat}"${idAttr}>${o.label}</span>`;
+    }).join('');
     const contactLines = [
       addr ? `<div class="fact"><span class="icon">📍</span><span class="fact-text">${addr}</span></div>` : '',
       phone ? `<div class="fact"><span class="icon">📞</span><span class="fact-text">${phone}</span></div>` : '',
-      website ? `<div class="fact"><span class="icon">🔗</span><a href="${website}" target="_blank" rel="noopener">Sito</a></div>` : '',
+      website ? `<div class="fact"><span class="icon">🔗</span><a href="${website}" target="_blank" rel="noopener" style="font-size: 18px;">Sito Web</a></div>` : '',
       email ? `<div class="fact"><span class="icon">✉️</span><span class="fact-text">${email.replace('✉️ ','')}</span></div>` : '',
       facebook ? `<div class="fact"><span class="icon">ⓕ</span><span class="fact-text">${facebook.replace('ⓕ ','')}</span></div>` : '',
       instagram ? `<div class="fact"><span class="icon">📸</span><span class="fact-text">${instagram.replace('📸 ','')}</span></div>` : '',
@@ -414,7 +473,51 @@ export default class HomeView {
     }
 
     // Ensure the detail panel UI bindings (like, prev/next, keyboard) are attached once.
+    // Prepare current detail context for persistence actions (like)
+    try {
+      const raw = el?.raw ?? el;
+      const docId = raw ? `osm_${raw.type}_${raw.id}` : null;
+      const minimalPayload = {
+        name: data?.name || fallbackName || raw?.tags?.name || null,
+        placeId: data?.placeId || null,
+        formatted_address: data?.formatted_address || null,
+        international_phone_number: data?.international_phone_number || null,
+        cuisine: (el?.tags?.cuisine) || null,
+        location: (data?.location || (raw && raw.lat && raw.lon ? { lat: raw.lat, lng: raw.lon } : null)),
+        savedAt: data?.savedAt || new Date().toISOString()
+      };
+      this._currentDetail = { docId, payload: minimalPayload, rawEl: el, data };
+    } catch (e) { console.warn('Unable to compute current detail context for like toggling', e); }
     this.bindDetailPanelEventsOnce();
+    // Reset like button state synchronously to avoid propagation of previous optimistic toggles
+    try {
+      const likeBtn = document.getElementById('dpLikeBtn');
+      const sp = likeBtn?.querySelector('span');
+      if (likeBtn) {
+        likeBtn.classList.remove('liked');
+        if (sp) sp.textContent = '♡';
+      }
+      // Async: fetch authoritative like state and update UI
+      (async () => {
+        try {
+          const ctx = this._currentDetail || {};
+          const docId = ctx.docId;
+          if (!docId || !this.controller || typeof this.controller.isRestaurantLikedByCurrentUser !== 'function') return;
+          const liked = await this.controller.isRestaurantLikedByCurrentUser(docId);
+          if (likeBtn) {
+            if (liked) { likeBtn.classList.add('liked'); if (sp) sp.textContent = '♥'; }
+            else { likeBtn.classList.remove('liked'); if (sp) sp.textContent = '♡'; }
+          }
+          // Update likes chip with server value
+          if (this.controller && typeof this.controller.getSavedRestaurant === 'function') {
+            const saved = await this.controller.getSavedRestaurant(docId);
+            const likeChip = document.getElementById('dpLikeChip');
+            const likesCount = Array.isArray(saved?.liked) ? saved.liked.length : 0;
+            if (likeChip) { likeChip.textContent = `${likesCount} ❤️`; }
+          }
+        } catch (e) { console.warn('Error refreshing like state', e); }
+      })();
+    } catch(e) { /* ignore */ }
   }
 
   // Renders an inline form in place of reviews list. Placeholder only: name fixed, cancel works; save not implemented.
