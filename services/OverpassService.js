@@ -1,6 +1,11 @@
 export default class OverpassService {
   constructor() {
-    this.endpoint = 'https://overpass-api.de/api/interpreter';
+    // Multiple public Overpass endpoints to fall back to
+    this.endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://lz4.overpass.openstreetmap.fr/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
+    ];
     this.cacheTtlMs = 10 * 60 * 1000; // 10 minuti
   }
 
@@ -69,35 +74,66 @@ export default class OverpassService {
       }
     };
 
-    // Single-endpoint with 1 quick retry
-    const ep = this.endpoint;
-    try {
-      const data = await fetchWithTimeout(ep, query, 12000, signal);
-      const elements = data?.elements || [];
-      if (elements.length) this._saveCache(key, elements);
-      return elements;
-    } catch (e1) {
-      const msg = String(e1?.message || e1);
-      if (msg.includes('Aborted')) throw e1; // propagate user abort
-      console.warn(`Overpass failed (${ep}) first attempt:`, e1);
-      // small backoff before retry
-      await new Promise(r => setTimeout(r, 300));
-      try {
-        const data2 = await fetchWithTimeout(ep, query, 16000, signal);
-        const elements2 = data2?.elements || [];
-        if (elements2.length) this._saveCache(key, elements2);
-        return elements2;
-      } catch (e2) {
-        const msg2 = String(e2?.message || e2);
-        if (msg2.includes('Aborted')) throw e2;
-        console.warn(`Overpass failed (${ep}) second attempt:`, e2);
+    // Try multiple endpoints with retries (exponential backoff). If user aborts, propagate.
+    const maxAttemptsPerEndpoint = 2;
+    const baseTimeout = 12000;
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    for (const ep of this.endpoints) {
+      for (let attempt = 0; attempt < maxAttemptsPerEndpoint; attempt++) {
+        const timeoutMs = baseTimeout + attempt * 4000;
+        try {
+          const data = await fetchWithTimeout(ep, query, timeoutMs, signal);
+          const elements = data?.elements || [];
+          if (elements.length) this._saveCache(key, elements);
+          // Return immediately even if elements is empty (valid zero-result), but prefer a positive result
+          if (elements.length) return elements;
+          // If empty, still return empty to caller (we got a valid response)
+          return elements;
+        } catch (err) {
+          const msg = String(err?.message || err);
+          if (msg.includes('Aborted')) throw err; // user aborted -> propagate
+          console.warn(`Overpass failed (${ep}) attempt ${attempt + 1}:`, err);
+          // backoff before retrying the same endpoint
+          await sleep(300 * Math.pow(2, attempt));
+        }
       }
     }
 
-    // All attempts failed: try cached value
+    // If we reach here, all endpoints/attempts failed. Try cached value as a graceful fallback.
     const cached = this._loadCache(key);
-    if (cached) return cached;
-    // Ultimately return empty list to caller
+    if (cached) {
+      console.warn('Overpass failed on all endpoints; using cached results');
+      return cached;
+    }
+
+    // No cache available: attempt progressive smaller-radius fallbacks to increase chance of a quick response
+    const radiusFallbackFactors = [0.7, 0.5, 0.3, 0.15];
+    for (const f of radiusFallbackFactors) {
+      const smaller = Math.max(500, Math.round(radius * f));
+      const smallKey = this._cacheKey(lat, lon, smaller);
+      // try endpoints once for each smaller radius
+      for (const ep of this.endpoints) {
+        try {
+          const data = await fetchWithTimeout(ep, this._buildQuery(lat, lon, smaller), baseTimeout, signal);
+          const elems = data?.elements || [];
+          if (elems.length) {
+            this._saveCache(smallKey, elems);
+            console.warn(`Overpass: fallback radius ${smaller}m succeeded on ${ep}`);
+            return elems;
+          }
+        } catch (e) {
+          const msg = String(e?.message || e);
+          if (msg.includes('Aborted')) throw e;
+          console.warn(`Overpass fallback ${smaller}m failed on ${ep}:`, e);
+        }
+      }
+      // try cache for smaller radius before next fallback
+      const cachedSmall = this._loadCache(smallKey);
+      if (cachedSmall) return cachedSmall;
+    }
+
+    // Ultimately nothing available: return empty array (caller should handle UI gracefully)
     return [];
   }
 }
