@@ -1,6 +1,6 @@
 import { app } from "./firebase-config.js";
 import { db } from "./firebase-config.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, query, collection, where, getDocs } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 // Singleton DB
 let dbInstance = null;
@@ -40,6 +40,35 @@ export default class FirestoreService {
     } catch (e) {
       console.error('Errore salvando documento:', e);
       return false;
+    }
+  }
+
+  // Metodo per aggiornare un campo specifico di un documento
+  async updateFieldById(collection, id, field, value) {
+    try {
+      const db = getDb();
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, { [field]: value });
+      console.log(`Campo "${field}" aggiornato con successo`);
+      return true;
+    } catch (e) {
+      console.error("Errore aggiornando campo:", e);
+      return false;
+    }
+  }
+
+  // Recupera tutte le recensioni di un utente
+  async getUserReviews(userID) {
+    try {
+      const db = getDb();
+      const q = query(collection(db, "Reviews"), where("authorID", "==", userID));
+      const querySnapshot = await getDocs(q);
+      const reviews = [];
+      querySnapshot.forEach(doc => reviews.push(doc.data()));
+      return reviews;
+    } catch (e) {
+      console.error("Errore recuperando recensioni:", e);
+      return [];
     }
   }
 }

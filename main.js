@@ -63,8 +63,9 @@ router.addRoute("/profilo", {
   view: (routerInstance) => {
     const view = new ProfileView();
     view.router = routerInstance;
-    const controller = new ProfiloController(view);
+    const controller = new ProfiloController();
     controller.router = routerInstance;
+    controller.view = view;
     view.controller = controller;
     return view;
   }
