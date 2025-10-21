@@ -29,12 +29,11 @@
                 </div>
                 <div class="mb-4 text-start">
                   <label class="form-label" for="regPassword">Password</label>
-                  <input type="password" id="regPassword" class="form-control form-control-lg" required />
+                    <input type="password" id="regPassword" class="form-control form-control-lg" required pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$" title="La password deve avere almeno 8 caratteri, una lettera maiuscola, una minuscola e un numero." />
                 </div>
                 <div class="mb-4 text-start">
                   <label class="form-label" for="regPassword2">Conferma Password</label>
-                  <input type="password" id="regPassword2" class="form-control form-control-lg" required />
-                </div>
+                  <input type="password" id="regPassword2" class="form-control form-control-lg" required pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$" title="La password deve avere almeno 8 caratteri, una lettera maiuscola, una minuscola e un numero." />
                 <button class="btn btn-outline-light btn-lg w-100 mb-3" type="submit">Registrati</button>
                
                 <p class="mb-0 mt-4">Hai già un account? <a class="text-white-50 fw-bold">Accedi</a></p>
