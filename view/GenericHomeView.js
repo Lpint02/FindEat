@@ -3,6 +3,8 @@ export default class GenericHomeView {
     constructor() {
         this.controller = null;
         this.router = null;    // sarà assegnato da main.js
+        this._defaultFilters = { distanceKm: 5 };
+        this._currentFilters = { ...this._defaultFilters };
     }
 
     /**
@@ -59,5 +61,76 @@ export default class GenericHomeView {
         const applyBtn = document.getElementById('applyFiltersBtn');
         if (resetBtn) resetBtn.textContent = "Ripristina";
         if (applyBtn) applyBtn.textContent = "Applica";
+
+
+        // Aggancia elementi UI
+        this.listContainer = document.getElementById('listView');
+        this.backBtn = document.getElementById('dpBackToList');
+        if (this.backBtn) {
+            this.backBtn.addEventListener('click', () => this.controller?.onBack());
+        }
+
+        // Bind filtri UI
+        this._bindFiltersUI();
+
+        // Avvia il controller dell'area Home
+        if (this.controller && typeof this.controller.init === 'function') {
+        this.controller.init(this._currentFilters);
+        }
     }
+
+    _bindFiltersUI() {
+        //Recupera riferimenti agli elementi
+        const dist = document.getElementById('fltDistance');
+        const distValue = document.getElementById('fltDistanceValue');
+        const btnApply = document.getElementById('applyFiltersBtn');
+        const btnReset = document.getElementById('resetFiltersBtn');
+
+        //Se mancano gli elementi, esci
+        if (!dist || !distValue || !btnApply || !btnReset) return;
+
+        //Inizializzazione stato UI
+        dist.value = String(this._currentFilters.distanceKm);
+        distValue.textContent = `${this._currentFilters.distanceKm} km`;
+        this._updateFilterButtonsState();
+
+        const onChange = () => {
+            this._currentFilters = {
+                distanceKm: parseInt(dist.value, 10)
+            };
+            distValue.textContent = `${this._currentFilters.distanceKm} km`;
+            this._updateFilterButtonsState();
+        };
+
+        dist.addEventListener('input', onChange);
+
+        btnReset.addEventListener('click', () => {
+            this._currentFilters = { ...this._defaultFilters };
+            dist.value = String(this._currentFilters.distanceKm);
+            distValue.textContent = `${this._currentFilters.distanceKm} km`;
+            this._updateFilterButtonsState();
+            // Inform controller to re-fetch with defaults
+            this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+        });
+
+        btnApply.addEventListener('click', () => {
+            this._updateFilterButtonsState(true); // disable right away
+            this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+        });
+    }
+
+    _filtersAreDefault() {
+        const defaultFilters = this._defaultFilters, currentFilters = this._currentFilters;
+        return defaultFilters.distanceKm === currentFilters.distanceKm;
+    }
+
+    _updateFilterButtonsState(disableNow = false) {
+        const btnApply = document.getElementById('applyFiltersBtn');
+        const btnReset = document.getElementById('resetFiltersBtn');
+        if (!btnApply || !btnReset) return;
+        const isDefault = this._filtersAreDefault();
+        btnApply.disabled = disableNow ? true : isDefault;
+        btnReset.disabled = isDefault;
+    }
+
 }

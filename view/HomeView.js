@@ -13,11 +13,11 @@ export default class HomeView {
     this.map = null;
     this.userMarker = null;
     this.markers = new Map(); // id => marker (rosso o blu) popolata in renderMapRestaurants
-  this.selected = null;
-  this.radiusCircle = null;
-  // Filtri (UI state only; controller owns data fetch)
-  // Distanza ora selezionabile 1–10 km, default 5 km
-  this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
+    this.selected = null;
+    this.radiusCircle = null;
+    // Filtri (UI state only; controller owns data fetch)
+    // Distanza ora selezionabile 1–10 km, default 5 km
+    this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
     this._currentFilters = { ...this._defaultFilters };
 
     this.defaultIcon = L.icon({
@@ -40,15 +40,15 @@ export default class HomeView {
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41]
     });
-  }
+  }//fine costruttore
 
   /**
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
-  async init() 
-  {
-    let utente = await new ProfiloController().fetchUserProfile();
+  async init()  {
+
     console.log("IN STORAGE:",localStorage);
+
     // Aggancia elementi UI
     this.listContainer = document.getElementById('listView');
     this.backBtn = document.getElementById('dpBackToList');
@@ -56,51 +56,21 @@ export default class HomeView {
       this.backBtn.addEventListener('click', () => this.controller?.onBack());
     }
 
-    // Navbar: Area Personale event
-    const areaPersonaleLink = document.querySelector('.navbar-nav .nav-link:nth-child(2)')
-    if (areaPersonaleLink) {
-      areaPersonaleLink.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      if (this.router && typeof this.router.navigate === 'function') 
-      {
-        //this.controller.handleProfile();
-        this.router.navigate('/profilo'); // esempio: route "profilo"
-      }
-      else
-      {
-        console.log('Area Personale cliccata');
-      }
-          });
-    }
-
-    // Navbar: Logout event
-    const logoutLink = document.querySelector('.navbar-nav .nav-link');
-    if (logoutLink) {
-      logoutLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('Logout cliccato');
-        // Qui puoi chiamare il controller o il router
-        if (this.controller && typeof this.controller.logout === 'function') {
-          this.controller.logout();
-        } else {
-          console.log('Logout cliccato');
-        }
-      });
-    }
+    this.#navbarAreaPersonaleEvent();
+    this.#navbarLogoutEvent();
 
     // Bind filtri UI
     this._bindFiltersUI();
 
     // Avvia il controller dell'area Home
-    if (this.controller && typeof this.controller.init === 'function') 
-    {
+    if (this.controller && typeof this.controller.init === 'function') {
       this.controller.init(this._currentFilters);
     }
         
-  }
+  }//fine init
 
   _bindFiltersUI() {
+    //Recupera riferimenti agli elementi
     const liked = document.getElementById('fltLiked');
     const reviewed = document.getElementById('fltReviewed');
     const dist = document.getElementById('fltDistance');
@@ -108,9 +78,10 @@ export default class HomeView {
     const btnApply = document.getElementById('applyFiltersBtn');
     const btnReset = document.getElementById('resetFiltersBtn');
 
+    //Se mancano gli elementi, esci
     if (!liked || !reviewed || !dist || !distValue || !btnApply || !btnReset) return;
 
-    // Initialize UI from current state
+    //Inizializzazione stato UI
     liked.checked = this._currentFilters.liked;
     reviewed.checked = this._currentFilters.reviewed;
     dist.value = String(this._currentFilters.distanceKm);
@@ -729,6 +700,43 @@ export default class HomeView {
       html += `<span class="star ${i <= r ? 'on' : 'off'}">★</span>`;
     }
     return html;
+  }
+
+  #navbarLogoutEvent(){
+    // Navbar: Logout event
+    const logoutLink = document.querySelector('.navbar-nav .nav-link');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Logout cliccato');
+        // Qui puoi chiamare il controller o il router
+        if (this.controller && typeof this.controller.logout === 'function') {
+          this.controller.logout();
+        } else {
+          console.log('Logout cliccato');
+        }
+      });
+    }
+  }
+
+  #navbarAreaPersonaleEvent(){
+    // Navbar: Area Personale event
+    const areaPersonaleLink = document.querySelector('.navbar-nav .nav-link:nth-child(2)')
+    if (areaPersonaleLink) {
+      areaPersonaleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      if (this.router && typeof this.router.navigate === 'function')
+      {
+        //this.controller.handleProfile();
+        this.router.navigate('/profilo'); // esempio: route "profilo"
+      }
+      else
+      {
+        console.log('Area Personale cliccata');
+      }
+          });
+    }
   }
 }
 
