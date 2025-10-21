@@ -34,7 +34,7 @@ export default class RegistrationView {
       link_login.addEventListener('click', (e) => {
         e.preventDefault();
         if (this.router) {
-          this.router.navigate("/");
+          this.router.navigate("/login");
         }
       });
     }

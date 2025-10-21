@@ -1,13 +1,19 @@
 #layout {
   display: flex;
   height: 100vh;
-  width: 100%;
+  width: 100vw; /* fill viewport width */
+}
+
+/* ensure no default page margins cause tiny gaps */
+html, body {
+  height: 100%;
+  margin: 0;
 }
 
 
 #leftPanel {
-  width: 50%;
-  max-width: 50%;
+  flex: 0 0 40%; /* fixed half layout but keep min-width */
+  max-width: 40%;
   min-width: 320px;
   height: 100vh;
   overflow-y: auto; /* singola scrollbar */
@@ -18,7 +24,7 @@
   font-family: 'Poppins', sans-serif;
 }
 
-#map { height: 100vh; width: 50%; display: grid; }
+#map { height: 100vh; flex: 1 1 50%; min-width: 0; display: grid; }
 
 
 /* In modalità DETTAGLIO: pannello sinistro 60%, mappa 40% */

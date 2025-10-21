@@ -1,5 +1,3 @@
-
-
 export default class GenericHomeView {
     //costruttore
     constructor() {
@@ -13,15 +11,13 @@ export default class GenericHomeView {
     init() {
         console.log("GenericHomeView initialized");
 
-        // Recupera tutti i link della navbar
+        // --- Navbar ---
         const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
         navLinks.forEach(link => {
             if (link.textContent.trim() === "Logout" || link.textContent.trim() === "Profilo") {
                 link.remove();
             }
         });
-
-        // Aggiungi il bottone Login
         const navbarNav = document.querySelector('.navbar-nav');
         if (navbarNav) {
             const loginBtn = document.createElement('a');
@@ -30,12 +26,38 @@ export default class GenericHomeView {
             loginBtn.id = 'loginBtn';
             loginBtn.style.cursor = 'pointer';
             navbarNav.appendChild(loginBtn);
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.router.navigate("/login");
+            });
         }
 
-        // Gestione submit del form di login
-        document.getElementById('loginBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.router.navigate("/login");
+        // --- Filtri ---
+        // Cambia "Filtri" in "Distanza"
+        const filtersTitle = document.querySelector('.filters-title');
+        if (filtersTitle) {
+            filtersTitle.textContent = "Distanza";
+        }
+
+        // Rimuovi "Solo liked" e "Solo recensiti"
+        document.querySelectorAll('.filters-row-1 .filter-label').forEach(label => {
+            const span = label.querySelector('.filter-text');
+            if (span && (span.textContent.includes("Solo liked") || span.textContent.includes("Solo recensiti"))) {
+                label.remove();
+            }
         });
+
+        // Rimuovi la scritta "Distanza" di lato
+        document.querySelectorAll('.filters-row-2 .filter-text').forEach(span => {
+            if (span.textContent.trim() === "Distanza") {
+                span.remove();
+            }
+        });
+
+        // Cambia testo dei bottoni
+        const resetBtn = document.getElementById('resetFiltersBtn');
+        const applyBtn = document.getElementById('applyFiltersBtn');
+        if (resetBtn) resetBtn.textContent = "Ripristina";
+        if (applyBtn) applyBtn.textContent = "Applica";
     }
 }
