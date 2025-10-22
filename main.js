@@ -98,8 +98,8 @@ onAuthStateChanged(auth, (user) => {
     }
   } else {
     console.log("Nessun utente loggato.");
-    // If the unauthenticated user is already trying to reach the login or registration page,
-    // don't override that navigation. Otherwise navigate to generic home.
+    // Se l'utente non autenticato sta già tentando di accedere a /login o /registrazione,
+    // non sovrascrivere quella navigazione; altrimenti reindirizza alla home generica.
     const p = window.location.pathname;
     if (p !== '/login' && p !== '/registrazione') {
       router.navigate("/");

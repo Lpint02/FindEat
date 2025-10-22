@@ -1,4 +1,5 @@
 import ProfiloController from "../controller/ProfileController.js";
+import MapView from "./MapView.js";
 
 // popup template inlined into HomeView (map folder should not own UI templates)
 
@@ -10,9 +11,12 @@ export default class HomeView {
     this.listContainer = null;
     this.backBtn = null;
     // Stato mappa/ui
+    // Delegato a MapView per separare le responsabilità della mappa
+    this.mapView = new MapView();
+    // Le proprietà legacy restano per compat ma non vengono più usate direttamente in HomeView
     this.map = null;
     this.userMarker = null;
-    this.markers = new Map(); // id => marker (rosso o blu) popolata in renderMapRestaurants
+    this.markers = new Map();
     this.selected = null;
     this.radiusCircle = null;
     // Filtri (UI state only; controller owns data fetch)
@@ -20,7 +24,8 @@ export default class HomeView {
     this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
     this._currentFilters = { ...this._defaultFilters };
 
-    this.defaultIcon = L.icon({
+    // Icone gestite da MapView (qui mantenute solo per compatibilità se qualche codice esterno le referenziasse)
+    this.defaultIcon = window.L ? L.icon({
       iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -29,8 +34,8 @@ export default class HomeView {
       popupAnchor: [1, -34],
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41]
-    });
-    this.selectedIcon = L.icon({
+    }) : null;
+    this.selectedIcon = window.L ? L.icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
       iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -39,7 +44,7 @@ export default class HomeView {
       popupAnchor: [1, -34],
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41]
-    });
+    }) : null;
   }//fine costruttore
 
   /**
@@ -593,143 +598,13 @@ export default class HomeView {
     if (statusDiv) statusDiv.style.display = '';
   }
 
-  // Mappa: init e gestione marker/selezione (era in MapView)
-  initMap(center, radius) {
-    const container = document.getElementById('map');
-    if (!container) return;
-    // Reuse cached map if present, otherwise ensure container is clean for a fresh init
-    if (!this.map) {
-      if (container.__leafletMapRef) {
-        this.map = container.__leafletMapRef;
-      } else {
-        // Fix sporadic 'Map container is already initialized' by resetting internal id
-        if (container._leaflet_id) {
-          try { container._leaflet_id = null; } catch(e) { /* ignore */ }
-        }
-        this.map = L.map(container).setView(center, 15);
-        container.__leafletMapRef = this.map;
-      }
-      if (this.map.zoomControl?.setPosition) this.map.zoomControl.setPosition('topright');
-      // Add tiles only once
-      if (!this._tilesLayerAdded) {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(this.map);
-        this._tilesLayerAdded = true;
-      }
-    } else {
-      this.map.setView(center, this.map.getZoom() || 15);
-    }
-    // Ensure single radius circle shared across instances
-    if (!this.radiusCircle) {
-      if (container.__radiusCircleRef) {
-        this.radiusCircle = container.__radiusCircleRef;
-      } else {
-        // Try to find an existing circle on the map (from previous view instances)
-        let found = null;
-        this.map.eachLayer(l => {
-          if (!found && l instanceof L.Circle) found = l;
-        });
-        if (found) {
-          this.radiusCircle = found;
-          container.__radiusCircleRef = found;
-        } else {
-          this.radiusCircle = L.circle(center, { radius, color: "#1976d2", fillColor: "#64b5f6", fillOpacity: 0.12, weight: 1 }).addTo(this.map);
-          container.__radiusCircleRef = this.radiusCircle;
-        }
-      }
-    }
-    // Update circle position and radius
-    if (this.radiusCircle) {
-      this.radiusCircle.setLatLng(center);
-      this.radiusCircle.setRadius(radius);
-    }
-    // Remove any duplicate circles beyond the primary one
-    const keep = this.radiusCircle;
-    const toRemove = [];
-    this.map.eachLayer(l => {
-      if (l instanceof L.Circle && l !== keep) toRemove.push(l);
-    });
-    toRemove.forEach(l => { try { l.remove(); } catch(e) { /* ignore */ } });
-  }
-  // Imposta il marker dell'utente (era in MapView)
-  setUserMarker(lat, lon) {
-    if (!this.userMarker) this.userMarker = L.marker([lat, lon], { icon: this.selectedIcon, interactive: false }).addTo(this.map);
-    else this.userMarker.setLatLng([lat, lon]);
-  }
-
-  // Aggiorna la posizione dell'utente (era in MapView)
-  updateUserPosition(lat, lon) {
-    if (this.userMarker) this.userMarker.setLatLng([lat, lon]);
-  }
-
-  // La view può renderizzare i marker dei ristoranti sulla mappa (era in MapView)
-  renderMapRestaurants(elements, onSelect) {
-    for (const m of this.markers.values()) m.remove(); // pulisce i marker esistenti
-    this.markers.clear();
-    elements.forEach(el => { 
-      // el è un'istanza di Restaurant: usa lat/lon/tags direttamente
-      const marker = this._createRestaurantMarker(this.map, el, (payload) => this.onSelectMarker(payload, onSelect)); //per ogni elemento crea un marker
-      if (marker) this.markers.set(el.id, marker); // salvalo sulla mappa con chiave coerente
-    });
-  }
-
-  // La view può selezionare un ristorante sulla mappa (el è Restaurant)
-  onSelectMarker({ data, fallbackName, el, location }, externalSelect) {
-    if (this.selected?.el?.id && this.selected.el.id !== el.id) {
-      const prevMarker = this.markers.get(this.selected.el.id);
-      if (prevMarker) prevMarker.setIcon(this.defaultIcon);
-    }
-    this.selected = { data, el, location };
-    const selMarker = this.markers.get(el.id);
-    if (selMarker) selMarker.setIcon(this.selectedIcon);
-    if (location?.lat && location?.lon) {
-      this.map.setView([location.lat, location.lon], Math.max(this.map.getZoom(), 16));
-    }
-    if (externalSelect) externalSelect({ data, fallbackName, el, location });
-  }
-
-  // UI-only factory to create a restaurant marker and emit a minimal payload when clicked
-  _createRestaurantMarker(map, el, onSelect) {
-    // el è Restaurant: lat/lon sono diretti
-    const lat = el.lat;
-    const lon = el.lon;
-    if (!lat || !lon) return;
-
-    const marker = L.marker([lat, lon], { icon: this.defaultIcon }).addTo(map);
-    const tooltipHtml = this._buildPopupHtml(el.tags || {});
-    marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -6], opacity: 0.95 });
-
-    marker.on('click', () => {
-      const name = el.name || el.tags?.name || null;
-      if (!name) return alert('Nessun nome per questo ristorante.');
-      if (onSelect) onSelect({ el, location: { lat, lon }, fallbackName: name });
-    });
-
-    return marker;
-  }
-
-  // Inline popup HTML builder (moved from map/popupTemplate.js)
-  _buildPopupHtml(tags = {}) {
-    const name = tags.name || 'Ristorante senza nome';
-    const cuisine = tags.cuisine || 'Tipo sconosciuto';
-    const phone = tags.phone || 'N/D';
-    const website = tags.website ? `<a href="${tags.website}" target="_blank" rel="noopener">Sito web</a>` : 'N/D';
-    return `<b>${name}</b><br>🍽️ Cucina: ${cuisine}<br>📞 Telefono: ${phone}<br>🌐 ${website}`;
-  }
-
-  // La view può selezionare un ristorante dalla lista sulla mappa (era in MapView)
-  selectOnMapById(id) {
-    const m = this.markers.get(id);
-    if (m) m.fire('click');
-  }
-
-  // La view può ripulire la selezione (ad esempio quando torno indietro dai dettagli di un ristorante)
-  clearMapSelection() {
-    if (this.selected?.el?.id) {
-      const prevMarker = this.markers.get(this.selected.el.id);
-      if (prevMarker) prevMarker.setIcon(this.defaultIcon);
-    }
-    this.selected = null;
-  }
+  // Mappa: ora delegata a MapView (stessa pagina, componenti separati)
+  initMap(center, radius) { return this.mapView.initMap(center, radius); }
+  setUserMarker(lat, lon) { return this.mapView.setUserMarker(lat, lon); }
+  updateUserPosition(lat, lon) { return this.mapView.updateUserPosition(lat, lon); }
+  renderMapRestaurants(elements, onSelect) { return this.mapView.renderMapRestaurants(elements, onSelect); }
+  selectOnMapById(id) { return this.mapView.selectOnMapById(id); }
+  clearMapSelection() { return this.mapView.clearMapSelection(); }
 
   // Helpers per stelle/orari/foto
   _renderStars(value, containerId = 'stars') {
