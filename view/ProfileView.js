@@ -318,7 +318,7 @@ export default class ProfileView {
 
         // Funzione per inizializzare (safe)
     
-        this.initCarousel();
+        this.initCarousel(carouselId);
 
         // Listener sui bottoni unlike
         container.querySelectorAll(".unlike-btn").forEach(btn => {
@@ -331,7 +331,7 @@ export default class ProfileView {
     }
 
     //metodo per inizializzare il carosello
-    initCarousel() {
+    initCarousel(carouselId) {
         const carouselElem = document.getElementById(carouselId);
         if (!carouselElem) {
             console.warn('[CAROUSEL DEBUG] carouselElem non trovato al momento dell\'init.');
