@@ -2,6 +2,7 @@ import { auth } from '../services/firebase-config.js';
 import FirestoreService from '../services/FirestoreService.js';
 import User from '../model/User.js';
 import Review from '../model/Review.js';
+import AuthService from '../services/AuthService.js';
 
 export default class ProfiloController {
     constructor() {
@@ -155,15 +156,48 @@ export default class ProfiloController {
     async loadUserReviews() {
         const userID = await this.fetchUserID();
         if (!userID) return;
-
+        // Modifica: recupera anche l'id Firestore
         const reviewsData = await this.firestore.getUserReviews(userID);
-        const reviews = reviewsData.map(r => new Review(r));
+        // reviewsData ora deve essere [{...reviewData, firestoreId: id}, ...]
+        const reviews = reviewsData.map(r => {
+            const review = new Review(r);
+            if (r.firestoreId) review.firestoreId = r.firestoreId;
+            console.log("Review caricata con ID Firestore:", review.firestoreId);
+            return review;
+        });
         this.view.displayReviews(reviews);
     }
 
     // metodo per aggiornare una recensione su Firestore e ricaricare la view
     async updateReview(review) {
-        await this.firestore.saveById('Reviews', `${review.authorID}_${review.restaurantID}`, { ...review });
+        // Usa l'id reale del documento Firestore
+        if (!review.firestoreId) {
+            console.error('ID Firestore della review mancante!');
+            return;
+        }
+        await this.firestore.saveById('Reviews', review.firestoreId, { ...review });
         await this.loadUserReviews();
     }
+
+    //metodo per eliminare un'utente
+    async deleteUser() {
+        const user = auth.currentUser;
+        const result = await this.firestore.deleteById('User', user.uid);
+        if(result)
+        {
+            // Elimino l'utente da Firebase Authentication
+            let result_delete_aut = await AuthService.deleteUser();
+            if(result_delete_aut)
+            {
+                // Pulisco la sessione
+                localStorage.clear();
+                this.router.navigate("/");
+            }
+            else
+            {
+                console.error("Errore eliminando l'utente da AuthService");
+            }
+        }
+    }
+
 }
