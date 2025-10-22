@@ -1,3 +1,9 @@
+.carousel-control-prev,
+.carousel-control-next {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
 /* Mostra il cursore a forma di mano sul link Home */
 #homeButton {
   cursor: pointer;
