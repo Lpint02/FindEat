@@ -42,54 +42,48 @@ export default class HomeView {
   }//fine init
 
   _bindFiltersUI() {
-    //Recupera riferimenti agli elementi
-    const liked = document.getElementById('fltLiked');
-    const reviewed = document.getElementById('fltReviewed');
+    console.log("Binding filters UI...");
+    // Recupera riferimenti agli elementi
     const dist = document.getElementById('fltDistance');
     const distValue = document.getElementById('fltDistanceValue');
     const btnApply = document.getElementById('applyFiltersBtn');
     const btnReset = document.getElementById('resetFiltersBtn');
 
-    //Se mancano gli elementi, esci
-    if (!liked || !reviewed || !dist || !distValue || !btnApply || !btnReset) return;
+    // Se mancano gli elementi, esci
+    if (!dist || !distValue || !btnApply || !btnReset) {
+        console.error("Uno o più elementi del filtro sono mancanti!");
+        return;
+    }
 
-    //Inizializzazione stato UI
-    liked.checked = this._currentFilters.liked;
-    reviewed.checked = this._currentFilters.reviewed;
+    // Inizializzazione stato UI
     dist.value = String(this._currentFilters.distanceKm);
     distValue.textContent = `${this._currentFilters.distanceKm} km`;
     this._updateFilterButtonsState();
 
+    // Evento per aggiornare il valore della distanza
     const onChange = () => {
-      this._currentFilters = {
-        liked: !!liked.checked,
-        reviewed: !!reviewed.checked,
-        distanceKm: parseInt(dist.value, 10)
-      };
-      distValue.textContent = `${this._currentFilters.distanceKm} km`;
-      this._updateFilterButtonsState();
+        this._currentFilters.distanceKm = parseInt(dist.value, 10);
+        distValue.textContent = `${this._currentFilters.distanceKm} km`;
+        this._updateFilterButtonsState();
     };
 
-    liked.addEventListener('change', onChange);
-    reviewed.addEventListener('change', onChange);
     dist.addEventListener('input', onChange);
 
+    // Evento per il pulsante "Ripristina"
     btnReset.addEventListener('click', () => {
-      this._currentFilters = { ...this._defaultFilters };
-      liked.checked = this._currentFilters.liked;
-      reviewed.checked = this._currentFilters.reviewed;
-      dist.value = String(this._currentFilters.distanceKm);
-      distValue.textContent = `${this._currentFilters.distanceKm} km`;
-      this._updateFilterButtonsState();
-      // Inform controller to re-fetch with defaults
-      this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+        this._currentFilters = { ...this._defaultFilters };
+        dist.value = String(this._currentFilters.distanceKm);
+        distValue.textContent = `${this._currentFilters.distanceKm} km`;
+        this._updateFilterButtonsState();
+        this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
     });
 
+    // Evento per il pulsante "Applica"
     btnApply.addEventListener('click', () => {
-      this._updateFilterButtonsState(true); // disable right away
-      this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+        this._updateFilterButtonsState(true);
+        this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
     });
-  }
+}
 
   _filtersAreDefault() {
     const a = this._defaultFilters, b = this._currentFilters;
@@ -99,10 +93,18 @@ export default class HomeView {
   _updateFilterButtonsState(disableNow = false) {
     const btnApply = document.getElementById('applyFiltersBtn');
     const btnReset = document.getElementById('resetFiltersBtn');
+
     if (!btnApply || !btnReset) return;
-    const isDefault = this._filtersAreDefault();
-    btnApply.disabled = disableNow ? true : isDefault;
-    btnReset.disabled = isDefault;
+
+    if (disableNow) {
+        btnApply.disabled = true;
+        btnReset.disabled = true;
+        return;
+    }
+
+    const filtersAreDefault = this._filtersAreDefault();
+    btnApply.disabled = filtersAreDefault;
+    btnReset.disabled = filtersAreDefault;
   }
 
   // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
