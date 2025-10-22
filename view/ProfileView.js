@@ -214,9 +214,10 @@ export default class ProfileView {
             item.className = `carousel-item ${index === 0 ? "active" : ""}`;
 
             // Card Bootstrap
+            const defaultImg = "images/images.png";
             const card = `
                 <div class="card mx-auto shadow" style="width: 20rem; border-radius: 1rem; overflow: hidden;">
-                    <img src="${rest.photo_url || "./images.png"}" class="card-img-top" alt="${rest.RestaurantName}">
+                    <img src="${rest.photo_url || defaultImg}" class="card-img-top" alt="${rest.RestaurantName}">
                     <div class="card-body text-center">
                         <h5 class="card-title">${rest.RestaurantName}</h5>
                         <p class="card-text mb-2">${rest.address}</p>
