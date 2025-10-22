@@ -324,9 +324,9 @@ export default class HomeView {
     }
 
     const detailsEl = document.getElementById('dpDetails');
-  const tags = el?.tags || {};
+    const tags = el?.tags || {};
     const g = data || {};
-  const distanceKm = typeof el?.distanceKm === 'number' ? `${el.distanceKm.toFixed(1)} km` : null;
+    const distanceKm = typeof el?.distanceKm === 'number' ? `${el.distanceKm.toFixed(1)} km` : null;
     const price = g.price_level != null ? '€'.repeat(g.price_level || 1) : null;
     const rating = g.rating != null ? g.rating.toFixed(1) : null;
     const totalRatings = g.user_ratings_total != null ? g.user_ratings_total : null;
@@ -807,12 +807,13 @@ export default class HomeView {
 
   #navbarLogoutEvent(){
     // Navbar: Logout event
-    const logoutLink = document.querySelector('.navbar-nav .nav-link');
+    // Find the nav link whose text includes 'Logout' (avoid positional selectors)
+    const links = Array.from(document.querySelectorAll('.navbar-nav .nav-link'));
+    const logoutLink = links.find(a => (a.textContent || '').trim().toLowerCase().includes('logout')) || null;
     if (logoutLink) {
       logoutLink.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('Logout cliccato');
-        // Qui puoi chiamare il controller o il router
+        // Prefer controller logout when available
         if (this.controller && typeof this.controller.logout === 'function') {
           this.controller.logout();
         } else {
@@ -824,21 +825,17 @@ export default class HomeView {
 
   #navbarAreaPersonaleEvent(){
     // Navbar: Area Personale event
-    const areaPersonaleLink = document.querySelector('.navbar-nav .nav-link:nth-child(2)')
+    const links = Array.from(document.querySelectorAll('.navbar-nav .nav-link'));
+    const areaPersonaleLink = links.find(a => (a.textContent || '').trim().toLowerCase().includes('profil')) || null;
     if (areaPersonaleLink) {
       areaPersonaleLink.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      if (this.router && typeof this.router.navigate === 'function')
-      {
-        //this.controller.handleProfile();
-        this.router.navigate('/profilo'); // esempio: route "profilo"
-      }
-      else
-      {
-        console.log('Area Personale cliccata');
-      }
-          });
+        e.preventDefault();
+        if (this.router && typeof this.router.navigate === 'function') {
+          this.router.navigate('/profilo');
+        } else {
+          console.log('Area Personale cliccata');
+        }
+      });
     }
   }
 }

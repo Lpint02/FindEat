@@ -1,136 +1,71 @@
-export default class GenericHomeView {
-    //costruttore
+import HomeView from './HomeView.js';
+
+export default class GenericHomeView extends HomeView {
     constructor() {
-        this.controller = null;
-        this.router = null;    // sarà assegnato da main.js
+        super();
+        // Only distance filter is exposed in the generic view
         this._defaultFilters = { distanceKm: 5 };
         this._currentFilters = { ...this._defaultFilters };
     }
 
-    /**
-     * Metodo chiamato dal Router dopo che l'HTML è stato caricato
-     */
-    init() {
-        console.log("GenericHomeView initialized");
+    // Override init to alter the DOM for non-logged users, then delegate to HomeView
+    async init() {
+        console.log('GenericHomeView initialized');
 
-        // --- Navbar ---
+        // --- Navbar adjustments: remove profile/logout and add Login link ---
         const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
         navLinks.forEach(link => {
-            if (link.textContent.trim() === "Logout" || link.textContent.trim() === "Profilo") {
+            if (link.textContent.trim() === 'Logout' || link.textContent.trim() === 'Profilo') {
                 link.remove();
             }
         });
         const navbarNav = document.querySelector('.navbar-nav');
-        if (navbarNav) {
-            const loginBtn = document.createElement('a');
-            loginBtn.className = 'nav-link';
-            loginBtn.textContent = 'Login';
-            loginBtn.id = 'loginBtn';
-            loginBtn.style.cursor = 'pointer';
-            navbarNav.appendChild(loginBtn);
-            loginBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.router.navigate("/login");
-            });
+        if (navbarNav && !document.getElementById('loginBtn')) {
+                const loginBtn = document.createElement('a');
+                loginBtn.className = 'nav-link';
+                loginBtn.textContent = 'Login';
+                loginBtn.id = 'loginBtn';
+                loginBtn.style.cursor = 'pointer';
+                // Add href so native navigation or middle-clicks work as fallback
+                loginBtn.href = '/login';
+                loginBtn.setAttribute('role', 'link');
+                navbarNav.appendChild(loginBtn);
+                // Primary SPA navigation handler
+                loginBtn.addEventListener('click', (e) => { e.preventDefault(); this.router.navigate('/login'); });
+                // Fallback delegated handler in case the element gets re-created by other scripts
+                if (!window.__generic_home_login_delegated) {
+                    document.addEventListener('click', (ev) => {
+                        const target = ev.target instanceof Element ? ev.target.closest('#loginBtn') : null;
+                        if (target) {
+                            ev.preventDefault();
+                            try { this.router.navigate('/login'); } catch(e) { console.warn('Router navigate failed', e); }
+                        }
+                    });
+                    window.__generic_home_login_delegated = true;
+                }
         }
 
-        // --- Filtri ---
-        // Cambia "Filtri" in "Distanza"
+        // --- Filters UI: simplify to only distance before HomeView binds them ---
         const filtersTitle = document.querySelector('.filters-title');
-        if (filtersTitle) {
-            filtersTitle.textContent = "Distanza";
-        }
+        if (filtersTitle) filtersTitle.textContent = 'Distanza';
 
-        // Rimuovi "Solo liked" e "Solo recensiti"
+        // Remove liked/reviewed filter labels when present
         document.querySelectorAll('.filters-row-1 .filter-label').forEach(label => {
             const span = label.querySelector('.filter-text');
-            if (span && (span.textContent.includes("Solo liked") || span.textContent.includes("Solo recensiti"))) {
+            if (span && (span.textContent.includes('Solo liked') || span.textContent.includes('Solo recensiti'))) {
                 label.remove();
             }
         });
+        // Remove side 'Distanza' label if present
+        document.querySelectorAll('.filters-row-2 .filter-text').forEach(span => { if (span.textContent.trim() === 'Distanza') span.remove(); });
 
-        // Rimuovi la scritta "Distanza" di lato
-        document.querySelectorAll('.filters-row-2 .filter-text').forEach(span => {
-            if (span.textContent.trim() === "Distanza") {
-                span.remove();
-            }
-        });
-
-        // Cambia testo dei bottoni
+        // Change buttons text
         const resetBtn = document.getElementById('resetFiltersBtn');
         const applyBtn = document.getElementById('applyFiltersBtn');
-        if (resetBtn) resetBtn.textContent = "Ripristina";
-        if (applyBtn) applyBtn.textContent = "Applica";
+        if (resetBtn) resetBtn.textContent = 'Ripristina';
+        if (applyBtn) applyBtn.textContent = 'Applica';
 
-
-        // Aggancia elementi UI
-        this.listContainer = document.getElementById('listView');
-        this.backBtn = document.getElementById('dpBackToList');
-        if (this.backBtn) {
-            this.backBtn.addEventListener('click', () => this.controller?.onBack());
-        }
-
-        // Bind filtri UI
-        this._bindFiltersUI();
-
-        // Avvia il controller dell'area Home
-        if (this.controller && typeof this.controller.init === 'function') {
-        this.controller.init(this._currentFilters);
-        }
+        // Delegate to parent init which will bind filters and start controller
+        await super.init();
     }
-
-    _bindFiltersUI() {
-        //Recupera riferimenti agli elementi
-        const dist = document.getElementById('fltDistance');
-        const distValue = document.getElementById('fltDistanceValue');
-        const btnApply = document.getElementById('applyFiltersBtn');
-        const btnReset = document.getElementById('resetFiltersBtn');
-
-        //Se mancano gli elementi, esci
-        if (!dist || !distValue || !btnApply || !btnReset) return;
-
-        //Inizializzazione stato UI
-        dist.value = String(this._currentFilters.distanceKm);
-        distValue.textContent = `${this._currentFilters.distanceKm} km`;
-        this._updateFilterButtonsState();
-
-        const onChange = () => {
-            this._currentFilters = {
-                distanceKm: parseInt(dist.value, 10)
-            };
-            distValue.textContent = `${this._currentFilters.distanceKm} km`;
-            this._updateFilterButtonsState();
-        };
-
-        dist.addEventListener('input', onChange);
-
-        btnReset.addEventListener('click', () => {
-            this._currentFilters = { ...this._defaultFilters };
-            dist.value = String(this._currentFilters.distanceKm);
-            distValue.textContent = `${this._currentFilters.distanceKm} km`;
-            this._updateFilterButtonsState();
-            // Inform controller to re-fetch with defaults
-            this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
-        });
-
-        btnApply.addEventListener('click', () => {
-            this._updateFilterButtonsState(true); // disable right away
-            this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
-        });
-    }
-
-    _filtersAreDefault() {
-        const defaultFilters = this._defaultFilters, currentFilters = this._currentFilters;
-        return defaultFilters.distanceKm === currentFilters.distanceKm;
-    }
-
-    _updateFilterButtonsState(disableNow = false) {
-        const btnApply = document.getElementById('applyFiltersBtn');
-        const btnReset = document.getElementById('resetFiltersBtn');
-        if (!btnApply || !btnReset) return;
-        const isDefault = this._filtersAreDefault();
-        btnApply.disabled = disableNow ? true : isDefault;
-        btnReset.disabled = isDefault;
-    }
-
 }

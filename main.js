@@ -35,7 +35,8 @@ router.addRoute("/", {
     view: (routerInstance) => {
       const view = new GenericHomeView();
       view.router = routerInstance;
-      const controller = new HomeController();
+      // Ensure controller receives the view instance so controller.view is set
+      const controller = new HomeController(view);
       controller.router = routerInstance;
       view.controller = controller;
       return view;
@@ -97,7 +98,12 @@ onAuthStateChanged(auth, (user) => {
     }
   } else {
     console.log("Nessun utente loggato.");
-    router.navigate("/"); //Torna alla login se non autenticato
+    // If the unauthenticated user is already trying to reach the login or registration page,
+    // don't override that navigation. Otherwise navigate to generic home.
+    const p = window.location.pathname;
+    if (p !== '/login' && p !== '/registrazione') {
+      router.navigate("/");
+    }
   }
 });
 router.init();
