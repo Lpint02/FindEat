@@ -41,6 +41,8 @@ export default class HomeView {
         
   }//fine init
 
+  //---Metodi riguardanti i filtri---
+
   _bindFiltersUI() {
     const liked = document.getElementById('fltLiked');
     const reviewed = document.getElementById('fltReviewed');
