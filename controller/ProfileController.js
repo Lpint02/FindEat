@@ -200,4 +200,20 @@ export default class ProfiloController {
         }
     }
 
+    //metodo per cercare i ristoranti preferiti
+    async loadLikedRestaurant() {
+        const userID = await this.fetchUserID();
+        if (!userID) return [];
+        let result = await this.firestore.findLikedRestaurant(userID);
+        if(result) 
+        {
+            console.log("Risultati:",result);
+            this.view.displayLikedRestaurant(result);
+        }
+        else
+        {
+            console.log("Nessun risultato ottenuto dai like");
+            this.view.noLikedRestaurant();
+        }
+    }
 }

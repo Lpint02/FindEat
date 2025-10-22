@@ -32,6 +32,9 @@ export default class ProfileView {
         // Carico le recensioni tramite il controller
         this.controller.loadUserReviews();
 
+        //Carico il carosello dei ristoranti preferiti
+        this.controller.loadLikedRestaurant();
+
         // Evento click sul link "Home" nella navbar
         const homeLink = [...document.querySelectorAll('.navbar-nav .nav-link')].find(el => el.textContent.trim() === 'Home');
         if (homeLink) {
@@ -162,4 +165,104 @@ export default class ProfileView {
         }
     }
 
+    //metodo chiamato dal controller per gestire la mancanza di ristoranti a cui si è fatto like
+    noLikedRestaurant(){
+                const Contenitore_Carosello = document.getElementById("Conteiner_del_carosello");
+                const section = document.createElement('section');
+                section.classList.add('empty-section');
+                const div = document.createElement('div');
+                div.classList.add('empty-icon');
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-utensils';
+                const p = document.createElement('p');
+                p.textContent = 'Nessun ristorante piaciuto';
+                div.appendChild(icon);
+                div.appendChild(p);
+                section.appendChild(div);
+                Contenitore_Carosello.appendChild(section);
+    }
+
+    //metodo chiamato dal controller per disegnare il carosello dei ristoranti preferiti
+    displayLikedRestaurant(restaurants) {
+    
+        const container = document.getElementById("Conteiner_del_carosello");
+        if (!container) return;
+
+        // Svuota il contenitore (in caso di refresh)
+        container.innerHTML = "";
+
+        // Se non ci sono ristoranti, mostra messaggio
+        if (!restaurants || restaurants.length === 0) {
+            this.noLikedRestaurant();
+            return;
+        }
+
+        // Crea struttura base del carosello
+            const carouselId = "carouselLikedRestaurants";
+            const carousel = document.createElement("div");
+            carousel.id = carouselId;
+            carousel.className = "carousel slide carousel-fade";
+            carousel.setAttribute("data-bs-ride", "carousel");
+
+        // Crea il contenitore interno
+        const inner = document.createElement("div");
+        inner.className = "carousel-inner";
+
+       // Genera ogni item (card del ristorante)
+       restaurants.forEach((rest, index) => {
+            const item = document.createElement("div");
+            item.className = `carousel-item ${index === 0 ? "active" : ""}`;
+
+            // Card Bootstrap
+            const card = `
+                <div class="card mx-auto shadow" style="width: 20rem; border-radius: 1rem; overflow: hidden;">
+                    <img src="${rest.photo_url || "./images.png"}" class="card-img-top" alt="${rest.RestaurantName}">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">${rest.RestaurantName}</h5>
+                        <p class="card-text mb-2">${rest.address}</p>
+                        <p class="text-warning mb-2">
+                            ⭐ ${rest.rating ? rest.rating.toFixed(1) : "N/A"}
+                        </p>
+                        <p class="text-muted small mb-3">
+                            Prezzo: ${rest.price_level ?? "-"} | Tel: ${rest.phone_number ?? "N/D"}
+                        </p>
+                        <button class="btn btn-outline-danger unlike-btn" data-id="${rest.RestaurantID}">
+                            <i class="bi bi-hand-thumbs-down"></i> Rimuovi
+                        </button>
+                    </div>
+                </div>
+        `;
+        item.innerHTML = card;
+        inner.appendChild(item);
+       });
+
+       // Aggiungi controlli (next/prev)
+       const prevBtn = `
+            <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Precedente</span>
+            </button>
+        `;
+        const nextBtn = `
+            <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Successivo</span>
+            </button>
+        `;
+
+        // Monta il carosello
+        carousel.appendChild(inner);
+        carousel.insertAdjacentHTML("beforeend", prevBtn + nextBtn);
+         container.appendChild(carousel);
+
+        // Eventuali listener per rimuovere dai like
+        container.querySelectorAll(".unlike-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const restaurantId = e.currentTarget.getAttribute("data-id");
+                console.log("Ristorante da rimuovere:", restaurantId);
+                // puoi chiamare un metodo del controller tipo:
+                // this.controller.unlikeRestaurant(restaurantId);
+            });
+        });
+}
 }

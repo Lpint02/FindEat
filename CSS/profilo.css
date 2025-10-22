@@ -150,3 +150,73 @@ body {
   font-weight: 600;
   text-shadow: 0 1px 6px rgba(44,62,80,0.10);
 }
+
+/*   Gestione del blocco section in caso di nessun ristorante trovato*/
+
+.empty-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #b2f7ef 100%);
+  border-radius: 24px;
+  box-shadow: 0 6px 32px 0 rgba(44, 62, 80, 0.10), 0 1.5px 6px 0 rgba(44, 62, 80, 0.10);
+  margin: 0 8px;
+}
+
+.empty-icon {
+  text-align: center;
+  color: #4fc3f7;
+  font-size: 38px;
+  animation: bounce 1.2s infinite cubic-bezier(.36,.07,.19,.97);
+  filter: drop-shadow(0 2px 8px #b2ebf2);
+}
+
+.empty-icon i {
+  font-size: 60px;
+  color: #00bcd4;
+  animation: utensils-wiggle 1.2s infinite;
+  margin-bottom: 10px;
+}
+
+.empty-icon p {
+  font-size: 22px;
+  margin-top: 12px;
+  color: #009688;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 6px #b2ebf2;
+}
+
+@keyframes utensils-wiggle {
+  0%, 100% { transform: rotate(-10deg); }
+  20% { transform: rotate(10deg); }
+  40% { transform: rotate(-8deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-10deg); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-18px);
+  }
+  60% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Animazione "bounce" */
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
