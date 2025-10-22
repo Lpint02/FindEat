@@ -18,7 +18,7 @@ export default class HomeView {
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
   async init()  {
-
+    let utente = await new ProfiloController().fetchUserProfile();
     console.log("IN STORAGE:",localStorage);
 
     // Aggancia elementi UI
