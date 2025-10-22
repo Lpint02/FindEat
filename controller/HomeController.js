@@ -295,13 +295,27 @@ export default class HomeController {
     const name = fallbackName || el?.name || el?.tags?.name;
     const docId = `osm_${raw.type}_${raw.id}`;
 
+    // Ensure Places service is available
+    if (!this._placesService) this._placesService = new GooglePlacesService();
+
     // Start with firebase if available
     try {
       console.log('HomeController: checking Firebase for docId', docId);
       const saved = await this._firebase.getById('Restaurant', docId);
       if (saved) {
-        // NON fare refresh a Google: usa i dati salvati e basta
-        return this.onMarkerSelected({ data: saved, fallbackName: name, el });
+        // Per le foto: NON usare URL salvati (sono temporanei e diventano 403).
+        // Se abbiamo un placeId, recupera foto fresche via Places e mostrale senza persistere.
+        let dataToShow = { ...saved };
+        if (saved.placeId) {
+          try {
+            const place = await this._placesService.getDetailsById(saved.placeId);
+            const photos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
+            if (Array.isArray(photos) && photos.length) dataToShow.photos = photos;
+          } catch(e) {
+            console.warn('Unable to refresh photos from Places for saved doc', e);
+          }
+        }
+        return this.onMarkerSelected({ data: dataToShow, fallbackName: name, el });
       }
     } catch(e) {
       console.warn('Firebase getById failed (non blocking)', e);
@@ -312,6 +326,9 @@ export default class HomeController {
       const place = await this._placesService.getDetailsByName(name, lat, lon);
       const openNow = (place?.current_opening_hours?.open_now ?? place?.opening_hours?.open_now);
       const weekdayText = place?.current_opening_hours?.weekday_text || place?.opening_hours?.weekday_text || null;
+      // Foto: genera URL freschi SOLO per la visualizzazione, non salvarli nel DB (sono temporanei)
+      const displayPhotos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
+
       const toSaveRaw = {
         name: place?.name || name,
         placeId: place?.place_id || null,
@@ -335,13 +352,14 @@ export default class HomeController {
         dine_in: place?.dine_in || false,
         takeout: place?.takeout || false,
         wheelchair_accessible_entrance: place?.wheelchair_accessible_entrance || false,
-        photos: place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [],
         location: { lat, lng: lon },
         savedAt: new Date().toISOString()
       };
       const toSave = JSON.parse(JSON.stringify(toSaveRaw)); // strip undefined
       try { await this._firebase.saveById('Restaurant', docId, toSave); } catch(e) { console.warn('Impossibile salvare su Firebase (non blocking)', e); }
-      return this.onMarkerSelected({ data: toSave, fallbackName: name, el });
+      // Mostra i dettagli usando foto fresche senza persistenza
+      const toShow = { ...toSave, photos: displayPhotos };
+      return this.onMarkerSelected({ data: toShow, fallbackName: name, el });
     } catch(e) {
       console.warn('Google Places fallback failed (non blocking)', e);
     }
