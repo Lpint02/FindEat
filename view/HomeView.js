@@ -1,51 +1,18 @@
 import ProfiloController from "../controller/ProfileController.js";
 import MapView from "./MapView.js";
 
-// popup template inlined into HomeView (map folder should not own UI templates)
-
 export default class HomeView {
   //costruttore
   constructor() {
-    this.controller = null; // HomeController
-    this.router = null;    // sarà assegnato da main.js
+    this.controller = null;
+    this.router = null;
     this.listContainer = null;
     this.backBtn = null;
-    // Stato mappa/ui
-    // Delegato a MapView per separare le responsabilità della mappa
-    this.mapView = new MapView();
-    // Le proprietà legacy restano per compat ma non vengono più usate direttamente in HomeView
-    this.map = null;
-    this.userMarker = null;
-    this.markers = new Map();
-    this.selected = null;
-    this.radiusCircle = null;
-    // Filtri (UI state only; controller owns data fetch)
-    // Distanza ora selezionabile 1–10 km, default 5 km
+    this.mapView = new MapView(); // Delegato a MapView per separare le responsabilità della mappa
     this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
     this._currentFilters = { ...this._defaultFilters };
 
-    // Icone gestite da MapView (qui mantenute solo per compatibilità se qualche codice esterno le referenziasse)
-    this.defaultIcon = window.L ? L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
-    }) : null;
-    this.selectedIcon = window.L ? L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-      iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
-    }) : null;
-  }//fine costruttore
+  }
 
   /**
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
@@ -598,7 +565,7 @@ export default class HomeView {
     if (statusDiv) statusDiv.style.display = '';
   }
 
-  // Mappa: ora delegata a MapView (stessa pagina, componenti separati)
+  // Mappa: delegata a MapView (stessa pagina, componenti separati)
   initMap(center, radius) { return this.mapView.initMap(center, radius); }
   setUserMarker(lat, lon) { return this.mapView.setUserMarker(lat, lon); }
   updateUserPosition(lat, lon) { return this.mapView.updateUserPosition(lat, lon); }
@@ -714,4 +681,3 @@ export default class HomeView {
     }
   }
 }
-
