@@ -631,8 +631,12 @@ export default class HomeView {
 
   _showPhoto(index) {
     const img = document.getElementById('dpCurrentPhoto');
+    const noPhotoMsg = document.getElementById('dpNoPhotoMsg');
     if (!img || !this._photosArray || this._photosArray.length === 0) return;
     this._currentPhotoIndex = (index + this._photosArray.length) % this._photosArray.length;
+    // Gestione fallback: se l'URL photo Google ritorna 403/errore, mostra messaggio "Nessuna foto".
+    img.onload = () => { img.style.display = 'block'; if (noPhotoMsg) noPhotoMsg.style.display = 'none'; };
+    img.onerror = () => { img.style.display = 'none'; if (noPhotoMsg) noPhotoMsg.style.display = 'block'; };
     img.src = this._photosArray[this._currentPhotoIndex];
   }
 
