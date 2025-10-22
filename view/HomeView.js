@@ -42,7 +42,6 @@ export default class HomeView {
   }//fine init
 
   _bindFiltersUI() {
-    //Recupera riferimenti agli elementi
     const liked = document.getElementById('fltLiked');
     const reviewed = document.getElementById('fltReviewed');
     const dist = document.getElementById('fltDistance');
@@ -50,10 +49,9 @@ export default class HomeView {
     const btnApply = document.getElementById('applyFiltersBtn');
     const btnReset = document.getElementById('resetFiltersBtn');
 
-    //Se mancano gli elementi, esci
     if (!liked || !reviewed || !dist || !distValue || !btnApply || !btnReset) return;
 
-    //Inizializzazione stato UI
+    // Initialize UI from current state
     liked.checked = this._currentFilters.liked;
     reviewed.checked = this._currentFilters.reviewed;
     dist.value = String(this._currentFilters.distanceKm);
@@ -104,6 +102,7 @@ export default class HomeView {
     btnApply.disabled = disableNow ? true : isDefault;
     btnReset.disabled = isDefault;
   }
+
 
   // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
   bindDetailPanelEventsOnce() {
