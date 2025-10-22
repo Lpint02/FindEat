@@ -29,6 +29,10 @@ export default class GenericHomeView extends HomeView {
             loginBtn.id = 'loginBtn';
             loginBtn.style.cursor = 'pointer';
             navbarNav.appendChild(loginBtn);
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.router.navigate("/login");
+            });
         }
 
         // --- Filtri ---
