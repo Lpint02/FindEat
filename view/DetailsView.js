@@ -12,6 +12,7 @@ export default class DetailsView {
     const detailView = document.getElementById('detailView');
     const listView = document.getElementById('listView');
     const filtersBar = document.getElementById('filtersBar');
+
     if (!detailView || !listView) return;
     listView.classList.add('hidden');
     detailView.classList.remove('hidden');
@@ -20,8 +21,8 @@ export default class DetailsView {
     const statusDiv = document.getElementById('status');
     if (statusDiv) statusDiv.style.display = 'none';
 
-  const titleEl = document.getElementById('dpTitle');
-  const baseName = data?.name || fallbackName || (el?.name ?? el?.tags?.name ?? 'Dettagli ristorante');
+    const titleEl = document.getElementById('dpTitle');
+    const baseName = data?.name || fallbackName || (el?.name ?? el?.tags?.name ?? 'Dettagli ristorante');
     let openBadge = '';
     const openNow = (data?.open_now !== undefined ? data.open_now : (data?.opening_hours?.open_now));
     if (openNow !== undefined) {
@@ -292,27 +293,27 @@ export default class DetailsView {
     }
 
     // Keyboard shortcuts (global once)
-    if (!window.__dp_kb_bound) {
-      document.addEventListener('keydown', (e) => {
-        const detailView = document.getElementById('detailView');
-        if (!detailView || detailView.classList.contains('hidden')) return;
+        if (!window.__dp_kb_bound) {
+        document.addEventListener('keydown', (e) => {
+            const detailView = document.getElementById('detailView');
+            if (!detailView || detailView.classList.contains('hidden')) return;
 
-        if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          this.controller?.onPrevPhoto && this.controller.onPrevPhoto();
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          this.controller?.onNextPhoto && this.controller.onNextPhoto();
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          if (this.controller?.onBack) this.controller.onBack(); else document.getElementById('dpBackToList')?.click();
-        } else if (e.key === 'l' || e.key === 'L') {
-          // Toggle like
-          document.getElementById('dpLikeBtn')?.click();
+            if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            this.controller?.onPrevPhoto && this.controller.onPrevPhoto();
+            } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            this.controller?.onNextPhoto && this.controller.onNextPhoto();
+            } else if (e.key === 'Escape') {
+            e.preventDefault();
+            if (this.controller?.onBack) this.controller.onBack(); else document.getElementById('dpBackToList')?.click();
+            } else if (e.key === 'l' || e.key === 'L') {
+            // Toggle like
+            document.getElementById('dpLikeBtn')?.click();
+            }
+        });
+        window.__dp_kb_bound = true;
         }
-      });
-      window.__dp_kb_bound = true;
-    }
 
     // Add review button -> opens inline form replacing the reviews list
     const addBtn = document.getElementById('dpAddReviewBtn');
@@ -323,75 +324,76 @@ export default class DetailsView {
   }
 
   // Renders an inline form in place of reviews list. Placeholder only: name fixed, cancel works; save not implemented.
-  _showAddReviewForm() {
-    const listEl = document.getElementById('dpReviewsList');
-    if (!listEl) return;
-    if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
-    while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
-    const addTpl = document.getElementById('dp-add-review-template');
-    const node = addTpl ? document.importNode(addTpl.content, true) : null;
-    if (node) listEl.appendChild(node);
-    // wiring
-    const formRoot = listEl.querySelector('#addReviewForm') || listEl;
-    let currentRating = null;
-    const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
-    const ratingInput = formRoot.querySelector('#arfRating');
-    const saveBtn = formRoot.querySelector('#arfSave');
-    const cancelBtn = formRoot.querySelector('#arfCancel');
-    const renderStars = (val = currentRating) => {
-      stars.forEach((s, idx) => { const active = val != null && idx < val; s.classList.toggle('active', !!active); s.style.color = active ? '#FFD54A' : '#ddd'; });
-      if (saveBtn) saveBtn.disabled = (val == null);
-    };
-    stars.forEach(b => b.addEventListener('click', () => { const v = parseInt(b.dataset.value, 10); currentRating = (v>=1 && v<=5)? v : null; if (ratingInput) ratingInput.value = currentRating != null ? String(currentRating) : ''; renderStars(); }));
-    if (ratingInput) ratingInput.addEventListener('input', () => { const v = parseInt(ratingInput.value, 10); currentRating = (!isNaN(v) && v>=1 && v<=5) ? v : null; renderStars(); });
-    if (cancelBtn) cancelBtn.addEventListener('click', () => { if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else while (listEl.firstChild) listEl.removeChild(listEl.firstChild); });
-    if (saveBtn) saveBtn.addEventListener('click', () => { /* TODO: call controller to persist review */ });
-    renderStars();
-  }
+    _showAddReviewForm() {
+        const listEl = document.getElementById('dpReviewsList');
+        if (!listEl) return;
+        if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
+        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+        const addTpl = document.getElementById('dp-add-review-template');
+        const node = addTpl ? document.importNode(addTpl.content, true) : null;
+        if (node) listEl.appendChild(node);
+        // wiring
+        const formRoot = listEl.querySelector('#addReviewForm') || listEl;
+        let currentRating = null;
+        const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
+        const ratingInput = formRoot.querySelector('#arfRating');
+        const saveBtn = formRoot.querySelector('#arfSave');
+        const cancelBtn = formRoot.querySelector('#arfCancel');
+        const renderStars = (val = currentRating) => {
+        stars.forEach((s, idx) => { const active = val != null && idx < val; s.classList.toggle('active', !!active); s.style.color = active ? '#FFD54A' : '#ddd'; });
+        if (saveBtn) saveBtn.disabled = (val == null);
+        };
+        stars.forEach(b => b.addEventListener('click', () => { const v = parseInt(b.dataset.value, 10); currentRating = (v>=1 && v<=5)? v : null; if (ratingInput) ratingInput.value = currentRating != null ? String(currentRating) : ''; renderStars(); }));
+        if (ratingInput) ratingInput.addEventListener('input', () => { const v = parseInt(ratingInput.value, 10); currentRating = (!isNaN(v) && v>=1 && v<=5) ? v : null; renderStars(); });
+        if (cancelBtn) cancelBtn.addEventListener('click', () => { if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else while (listEl.firstChild) listEl.removeChild(listEl.firstChild); });
+        if (saveBtn) saveBtn.addEventListener('click', () => { /* TODO: call controller to persist review */ });
+        renderStars();
+    }
 
-  _showPhoto(index) {
-    const img = document.getElementById('dpCurrentPhoto');
-    const noPhotoMsg = document.getElementById('dpNoPhotoMsg');
-    if (!img || !this._photosArray || this._photosArray.length === 0) return;
-    this._currentPhotoIndex = (index + this._photosArray.length) % this._photosArray.length;
-    // Gestione fallback: se l'URL photo Google ritorna 403/errore, mostra messaggio "Nessuna foto".
-    img.onload = () => { img.style.display = 'block'; if (noPhotoMsg) noPhotoMsg.style.display = 'none'; };
-    img.onerror = () => { img.style.display = 'none'; if (noPhotoMsg) noPhotoMsg.style.display = 'block'; };
-    img.src = this._photosArray[this._currentPhotoIndex];
-  }
+    _showPhoto(index) {
+        const img = document.getElementById('dpCurrentPhoto');
+        const noPhotoMsg = document.getElementById('dpNoPhotoMsg');
+        if (!img || !this._photosArray || this._photosArray.length === 0) return;
+        this._currentPhotoIndex = (index + this._photosArray.length) % this._photosArray.length;
+        // Gestione fallback: se l'URL photo Google ritorna 403/errore, mostra messaggio "Nessuna foto".
+        img.onload = () => { img.style.display = 'block'; if (noPhotoMsg) noPhotoMsg.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none'; if (noPhotoMsg) noPhotoMsg.style.display = 'block'; };
+        img.src = this._photosArray[this._currentPhotoIndex];
+    }
 
     // Public API: navigate photos from controller
     prevPhoto() {
-    if (!this._photosArray || this._photosArray.length === 0) return;
-    this._showPhoto(this._currentPhotoIndex - 1);
-    }
+        if (!this._photosArray || this._photosArray.length === 0) return;
+        this._showPhoto(this._currentPhotoIndex - 1);
+        }
 
     nextPhoto() {
-    if (!this._photosArray || this._photosArray.length === 0) return;
-    this._showPhoto(this._currentPhotoIndex + 1);
+        if (!this._photosArray || this._photosArray.length === 0) return;
+        this._showPhoto(this._currentPhotoIndex + 1);
     }
-  // Helpers per stelle/orari/foto
-  _renderStars(value, containerId = 'stars') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = '';
-    if (value == null) return;
-    const full = Math.floor(value);
-    const half = (value - full) >= 0.5;
-    for (let i = 0; i < 5; i++) {
-      const span = document.createElement('span');
-      span.className = 'star';
-      if (i < full) { span.innerText = '★'; span.style.color = '#FFD54A'; }
-      else if (i === full && half) {
-        span.innerText = '★';
-        span.style.background = 'linear-gradient(90deg,#FFD54A 50%, #ddd 50%)';
-        span.style.WebkitBackgroundClip = 'text';
-        span.style.backgroundClip = 'text';
-        span.style.color = 'transparent';
-      } else { span.innerText = '★'; span.style.color = '#ddd'; }
-      container.appendChild(span);
+
+    // Helpers per stelle/orari/foto
+    _renderStars(value, containerId = 'stars') {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        if (value == null) return;
+        const full = Math.floor(value);
+        const half = (value - full) >= 0.5;
+        for (let i = 0; i < 5; i++) {
+            const span = document.createElement('span');
+            span.className = 'star';
+        if (i < full) { span.innerText = '★'; span.style.color = '#FFD54A'; }
+            else if (i === full && half) {
+                span.innerText = '★';
+                span.style.background = 'linear-gradient(90deg,#FFD54A 50%, #ddd 50%)';
+                span.style.WebkitBackgroundClip = 'text';
+                span.style.backgroundClip = 'text';
+                span.style.color = 'transparent';
+            } else { span.innerText = '★'; span.style.color = '#ddd'; }
+            container.appendChild(span);
+        }
     }
-  }
 
   renderOpeningHoursHTML(opening) {
     if (!opening) return '';
