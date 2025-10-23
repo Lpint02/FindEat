@@ -182,9 +182,9 @@ export default class ProfiloController {
     //metodo per eliminare un'utente
     async deleteUser() {
         const user = auth.currentUser;
-        //const result = await this.firestore.deleteById('User', user.uid);
-        
-        if(true)
+        const result = await this.firestore.deleteById('User', user.uid);
+
+        if(result)
         {
             // Elimino l'utente da Firebase Authentication
             let result_delete_aut = await AuthService.deleteUser();
