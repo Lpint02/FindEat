@@ -102,6 +102,13 @@ html, body {
 .add-review-btn:hover { opacity: 0.9; }
 #dpReviewsLabel { font-size: 22px; font-weight: 600; color: #111; }
 
+/* Stato visivo disabilitato per Add Review, ma clic ancora gestito per mostrare toast */
+.add-review-btn.is-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  filter: grayscale(40%);
+}
+
 /* Chip categories (future ready) */
 .chip { position:relative; }
 .chip[data-cat="service"] { background:#e6f3ff; border-color:#d1e9fa; }
@@ -477,3 +484,37 @@ html, body {
     /* Abilita posizionamento relativo per contenitori */
     #leftPanel { position: relative; }
     #map { position: relative; }
+    
+    /* Toast: container fisso top-center e varianti (namespaced per evitare conflitti Bootstrap) */
+    .fe-toast-container {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none; /* lascia cliccare sotto */
+    }
+    .fe-toast {
+      pointer-events: auto;
+      background: #333;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      letter-spacing: .2px;
+      border: 1px solid rgba(255,255,255,0.1);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .fe-toast.fe-toast--success { background: #2e7d32; }
+    .fe-toast.fe-toast--error { background: #c62828; }
+    .fe-toast.fe-toast--info { background: #1565c0; }
+    .fe-toast-container .fe-toast { opacity: 1; transform: translateY(0); }
+    .fe-toast.fe-toast--hide { opacity: 0; transform: translateY(-6px); }
