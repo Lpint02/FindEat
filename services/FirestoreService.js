@@ -177,4 +177,38 @@ export default class FirestoreService {
 
     return restaurants;
   }
+
+  // Crea una recensione nella collection "Reviews" con ID auto-generato
+  async addReview(reviewData) {
+    try {
+      const db = getDb();
+      // genera un nuovo riferimento con id automatico
+      const docRef = doc(collection(db, "Reviews"));
+      const id = docRef.id;
+      const payload = { ...reviewData, firestoreId: id };
+      await setDoc(docRef, payload, { merge: false });
+      return { ok: true, id, data: payload };
+    } catch (e) {
+      console.error("Errore creando recensione:", e);
+      return { ok: false, error: e };
+    }
+  }
+
+  // Recupera recensioni per ristorante (RestaurantID)
+  async getReviewsByRestaurant(restaurantID) {
+    try {
+      const db = getDb();
+      const q = query(collection(db, "Reviews"), where("RestaurantID", "==", restaurantID));
+      const snapshot = await getDocs(q);
+      const arr = [];
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        arr.push({ ...data, firestoreId: docSnap.id });
+      });
+      return arr;
+    } catch (e) {
+      console.error("Errore recuperando recensioni per ristorante:", e);
+      return [];
+    }
+  }
 }

@@ -428,4 +428,53 @@ export default class HomeController {
     }
   }
 
+  // Ritorna true se esiste un utente loggato (usato dalla View per abilitare/disabilitare UI)
+  isLoggedIn() {
+    return !!auth.currentUser;
+  }
+    // Nota: il controllo "più vecchio di 2 giorni" è stato spostato in FirestoreService.isOlderThanTwoDays
+
+    // --- Recensioni utente ---
+    /**
+     * Crea una recensione utente su Firestore (collection Reviews).
+     * Richiede utente loggato. La view deve passare author_name (da localStorage), rating (obbligatorio), text (opzionale).
+     */
+    async addUserReview({ restaurantId, restaurantName, author_name, rating, text }) {
+      try {
+        const user = auth.currentUser;
+        if (!user) return { ok: false, error: 'not-authenticated' };
+        if (!(rating >= 1 && rating <= 5)) return { ok: false, error: 'invalid-rating' };
+        if (!this._firebase) this._firebase = new FirestoreService();
+        const review = {
+          AuthorID: user.uid,
+          RestaurantID: restaurantId,
+          RestaurantName: restaurantName || '',
+          author_name: author_name || '',
+          language: 'it',
+          original_language: 'it',
+          rating: Number(rating),
+          text: text || '',
+          time: new Date().toISOString(),
+          translated: false
+        };
+        const res = await this._firebase.addReview(review);
+        return res;
+      } catch (e) {
+        console.error('addUserReview failed', e);
+        return { ok: false, error: e };
+      }
+    }
+
+    /**
+     * Recupera le recensioni utente per un ristorante.
+     */
+    async fetchUserReviews(restaurantId) {
+      try {
+        if (!this._firebase) this._firebase = new FirestoreService();
+        return await this._firebase.getReviewsByRestaurant(restaurantId);
+      } catch (e) {
+        console.error('fetchUserReviews failed', e);
+        return [];
+      }
+    }
 }

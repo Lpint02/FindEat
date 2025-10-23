@@ -63,6 +63,11 @@ export default class HomeView {
     distValue.textContent = `${parseInt(dist.value, 10)} km`;
     this._updateFilterButtonsState();
 
+    // Se già inizializzati, non aggiungere di nuovo i listeners 
+    if (this._filtersBindingsInitialized) {
+      return;
+    }
+
     const onChange = () => {
       // update only keys that exist in UI (keep others as-is)
       this._currentFilters.distanceKm = parseInt(dist.value, 10);
@@ -85,12 +90,19 @@ export default class HomeView {
       distValue.textContent = `${parseInt(dist.value, 10)} km`;
       this._updateFilterButtonsState();
       this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+      // Toast informativo per reset
+      this._showToast('Filtri ripristinati', 'info');
     });
 
     btnApply.addEventListener('click', () => {
       this._updateFilterButtonsState(true);
       this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
+      // Toast di successo per applicazione filtri
+      this._showToast('Filtri applicati', 'success');
     });
+
+    // Segna bind completato per evitare doppie registrazioni
+    this._filtersBindingsInitialized = true;
   }
 
 
@@ -124,6 +136,13 @@ export default class HomeView {
         likeBtn.appendChild(sp);
       }
       likeBtn.addEventListener('click', async () => {
+        // Require login for like
+        const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+        if (!isLogged) {
+          this._showToast('Devi essere loggato per fare questo', 'error');
+          console.log('User not logged in - like action blocked');
+          return;
+        }
         // optimistic UI toggle
         const sp = likeBtn.querySelector('span');
         likeBtn.classList.toggle('liked');
@@ -149,6 +168,7 @@ export default class HomeView {
             likeBtn.classList.toggle('liked');
             if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
             console.warn('toggleLike failed', res?.error);
+            this._showToast('Operazione non riuscita', 'error');
           } else {
             // ensure final UI matches server and update likes chip
             if (res.liked) {
@@ -158,6 +178,7 @@ export default class HomeView {
                 const cur = parseInt(likeChip.textContent, 10) || 0;
                 likeChip.textContent = `${cur + 1} ❤️`;
               }
+              this._showToast('Aggiunto ai preferiti', 'success');
             } else {
               likeBtn.classList.remove('liked');
               if (sp) sp.textContent = '♡';
@@ -165,6 +186,7 @@ export default class HomeView {
                 const cur = parseInt(likeChip.textContent, 10) || 0;
                 likeChip.textContent = `${Math.max(0, cur - 1)} ❤️`;
               }
+              this._showToast('Rimosso dai preferiti', 'info');
             }
           }
         } catch (e) {
@@ -172,6 +194,7 @@ export default class HomeView {
           // revert optimistic UI
           likeBtn.classList.toggle('liked');
           if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+          this._showToast('Errore durante il like', 'error');
         }
       });
       likeBtn.__bound = true;
@@ -212,11 +235,23 @@ export default class HomeView {
       window.__dp_kb_bound = true;
     }
 
-    // Add review button -> opens inline form replacing the reviews list
+    // Bottone "Aggiungi recensione": visibile sempre, ma disabilitato se non loggato (come il like)
     const addBtn = document.getElementById('dpAddReviewBtn');
-    if (addBtn && !addBtn.__bound) {
-      addBtn.addEventListener('click', () => this._showAddReviewForm());
-      addBtn.__bound = true;
+    if (addBtn) {
+      const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+      // Visualmente disabilitato ma cliccabile per mostrare toast
+      addBtn.classList.toggle('is-disabled', !isLogged);
+      addBtn.setAttribute('aria-disabled', String(!isLogged));
+      if (!isLogged) addBtn.title = 'Accedi per aggiungere una recensione'; else addBtn.title = '';
+      if (!addBtn.__bound) {
+        addBtn.addEventListener('click', () => {
+          // Se non loggato, mostra toast e non aprire form
+          const ok = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+          if (!ok) { this._showToast('Devi essere loggato per fare questo', 'error'); return; }
+          this._showAddReviewForm();
+        });
+        addBtn.__bound = true;
+      }
     }
   }
 
@@ -377,8 +412,9 @@ export default class HomeView {
     const reviewsListEl = document.getElementById('dpReviewsList');
     const reviewsCount = document.getElementById('dpReviewsCount');
     reviewsListEl.innerHTML = '';
-    if (Array.isArray(data?.reviews) && data.reviews.length) {
-      data.reviews.forEach(r => {
+    const googleReviews = Array.isArray(data?.reviews) ? data.reviews.slice(0, 5) : [];
+    if (googleReviews.length) {
+      googleReviews.forEach(r => {
         const name = r.author_name || 'Anonimo';
         const url = r.author_url || null;
         const avatar = r.profile_photo_url || '';
@@ -413,7 +449,7 @@ export default class HomeView {
         `;
         reviewsListEl.appendChild(div);
       });
-      reviewsCount.textContent = `(${data.reviews.length})`;
+      reviewsCount.textContent = `(${googleReviews.length})`;
     } else {
       reviewsListEl.innerHTML = '<div class="review">Nessuna recensione disponibile.</div>';
       reviewsCount.textContent = '';
@@ -465,9 +501,28 @@ export default class HomeView {
         } catch (e) { console.warn('Error refreshing like state', e); }
       })();
     } catch(e) { /* ignore */ }
+
+    // Carica e mostra le recensioni utente (oltre a quelle di Google)
+    (async () => {
+      try {
+        const ctx = this._currentDetail || {};
+        const rid = ctx.docId;
+        if (rid && this.controller && typeof this.controller.fetchUserReviews === 'function') {
+          const userReviews = await this.controller.fetchUserReviews(rid);
+          this._userReviews = Array.isArray(userReviews) ? userReviews : [];
+          if (this._userReviews.length) {
+            this._renderUserReviewsAppend(this._userReviews);
+            const googleCount = googleReviews.length;
+            const total = googleCount + this._userReviews.length;
+            const reviewsCount = document.getElementById('dpReviewsCount');
+            if (reviewsCount) reviewsCount.textContent = `(${total})`;
+          }
+        }
+      } catch (e) { console.warn('Impossibile caricare recensioni utente', e); }
+    })();
   }
 
-  // Renders an inline form in place of reviews list. Placeholder only: name fixed, cancel works; save not implemented.
+  // Rende un form inline per aggiungere recensione utente (solo loggati). Nome da localStorage, rating obbligatorio.
   _showAddReviewForm() {
     const listEl = document.getElementById('dpReviewsList');
     if (!listEl) return;
@@ -476,11 +531,12 @@ export default class HomeView {
     if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
 
     // Build a simple form UI
+    const lsName = (()=>{ try { return localStorage.getItem('userName') || 'Anonimo'; } catch { return 'Anonimo'; } })();
     listEl.innerHTML = `
       <form id="addReviewForm" class="add-review-form" onsubmit="return false;">
         <div class="arf-row">
           <label>Nome</label>
-          <input type="text" id="arfName" value="nome" disabled />
+          <input type="text" id="arfName" value="${lsName}" disabled />
         </div>
         <div class="arf-row">
           <label>Voto</label>
@@ -495,7 +551,7 @@ export default class HomeView {
         </div>
         <div class="arf-actions">
           <button type="button" id="arfCancel" class="btn-secondary">Annulla</button>
-          <button type="button" id="arfSave" class="btn-primary" disabled>Salva</button>
+          <button type="button" id="arfSave" class="btn-primary" disabled>Aggiungi</button>
         </div>
       </form>
     `;
@@ -544,15 +600,110 @@ export default class HomeView {
       }
     });
 
-    // Save (placeholder: not active yet)
+    // Salva recensione (rating obbligatorio, testo opzionale)
     const saveBtn = listEl.querySelector('#arfSave');
-    if (saveBtn) saveBtn.addEventListener('click', () => {
-      // Non implementato per ora. Potremo inviare al controller per persistenza.
-      // Intenzionalmente vuoto.
+    if (saveBtn) saveBtn.addEventListener('click', async () => {
+      try {
+        const nameInput = listEl.querySelector('#arfName');
+        const textInput = listEl.querySelector('#arfText');
+        const author_name = nameInput?.value || 'Anonimo';
+        const rating = currentRating;
+        const text = (textInput?.value || '').trim();
+        // Validazione minima
+        if (!(rating >= 1 && rating <= 5)) return;
+        const ctx = this._currentDetail || {};
+        const restaurantId = ctx.docId;
+        const restaurantName = ctx?.payload?.name || '';
+        if (!restaurantId || !this.controller || typeof this.controller.addUserReview !== 'function') return;
+        const res = await this.controller.addUserReview({ restaurantId, restaurantName, author_name, rating, text });
+        if (!res || !res.ok) {
+          this._showToast('Impossibile aggiungere la recensione. Riprova.', 'error');
+          return;
+        }
+        // Feedback utente: toast in alto al centro (classe CSS esterna)
+        this._showToast('Recensione aggiunta con successo', 'success');
+
+        // Torna allo stato precedente (uscire dalla modalità inserimento)
+        if (this._savedReviewsHtml != null) {
+          listEl.innerHTML = this._savedReviewsHtml;
+          this._savedReviewsHtml = null;
+        } else {
+          listEl.innerHTML = '';
+        }
+
+        // Aggiorna lista locale e append la nuova recensione utente dopo le Google
+        const saved = res.data;
+        if (!Array.isArray(this._userReviews)) this._userReviews = [];
+        this._userReviews.unshift(saved);
+        this._renderUserReviewsAppend([saved]);
+        // Aggiorna contatore totale (Google + utenti)
+        const googleCount = Array.isArray((this._currentDetail?.data?.reviews)) ? Math.min(5, this._currentDetail.data.reviews.length) : 0;
+        const total = googleCount + this._userReviews.length;
+        const reviewsCount = document.getElementById('dpReviewsCount');
+        if (reviewsCount) reviewsCount.textContent = `(${total})`;
+      } catch (e) {
+        console.warn('Errore salvataggio recensione', e);
+        this._showToast('Errore durante il salvataggio della recensione.', 'error');
+      }
     });
 
     // Initial paint
     renderStars();
+  }
+
+  // Appende recensioni utente al fondo della lista, con avatar standard
+  _renderUserReviewsAppend(reviews) {
+    const reviewsListEl = document.getElementById('dpReviewsList');
+    if (!reviewsListEl || !Array.isArray(reviews) || !reviews.length) return;
+    for (const r of reviews) {
+      const name = r.author_name || 'Anonimo';
+      const rating = (typeof r.rating === 'number' && isFinite(r.rating)) ? r.rating : null;
+      const rounded = rating != null ? Math.max(0, Math.min(5, Math.round(rating))) : null;
+      const text = r.text || '';
+      const starsHtml = this._buildReviewStars(rating);
+      const avatarHtml = `<div class="review-avatar fallback" aria-hidden="true">👤</div>`;
+      const rightCluster = (rounded != null)
+        ? `<div class="review-stars">${starsHtml}<span class="review-rating-number">(${rounded})</span></div>`
+        : '';
+      const div = document.createElement('div');
+      div.className = 'review';
+      div.innerHTML = `
+        <div class="review-header">
+          <div class="review-id">
+            ${avatarHtml}
+            <div class="review-header-text">
+              <span class="review-author">${name}</span>
+              ${r.time ? `<div class="review-time">${new Date(r.time).toLocaleDateString('it-IT')}</div>` : ''}
+            </div>
+          </div>
+          ${rightCluster}
+        </div>
+        <div class="review-text">${text}</div>
+      `;
+      reviewsListEl.appendChild(div);
+    }
+  }
+
+  // Toast helper: usa container fisso in cima alla pagina, stili definiti in CSS/style.css (namespaced: fe-toast)
+  _showToast(message, variant = 'success') {
+    try {
+      let container = document.querySelector('.fe-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'fe-toast-container';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      toast.className = `fe-toast fe-toast--${variant}`;
+      toast.setAttribute('role', variant === 'error' ? 'alert' : 'status');
+      toast.textContent = message;
+      container.appendChild(toast);
+      // Auto remove after 2.5s with fade-out
+      setTimeout(() => {
+        toast.classList.add('fe-toast--hide');
+        setTimeout(() => { try { toast.remove(); } catch {} }, 250);
+      }, 2500);
+    } catch {}
   }
 
   // La view torna alla lista
