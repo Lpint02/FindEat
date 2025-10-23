@@ -70,7 +70,6 @@ export default class ProfileView {
 
         // Evento "Elimina foto profilo"
         const btnRemovePhoto = document.getElementById('btn-remove-photo');
-
         if (btnRemovePhoto) {
             btnRemovePhoto.addEventListener('click', async (e) => {
                 e.preventDefault();
