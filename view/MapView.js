@@ -101,11 +101,37 @@ export default class MapView {
 
     // Render dei marker ristoranti
     renderMapRestaurants(elements, onSelect) {
+        // Rimuovi marker esistenti
         for (const m of this.markers.values()) { try { m.remove(); } catch(e) {} }
         this.markers.clear();
-        elements.forEach(el => {
+
+        if (!Array.isArray(elements) || elements.length === 0) return;
+
+        // Se abbiamo un cerchio di raggio, usalo per filtrare (radius in metri)
+        const circle = this.radiusCircle || null;
+        const circleCenter = circle ? circle.getLatLng() : null;
+        const circleRadius = circle ? circle.getRadius() : null; // metri
+
+        elements.forEach((el, idx) => {
+            const lat = el.lat;
+            const lon = el.lon;
+            if (lat == null || lon == null) return;
+
+            // Se abbiamo il cerchio, calcola distanza e filtra
+            if (circleCenter && typeof circleRadius === 'number') {
+                try {
+                    const d = L.latLng(circleCenter).distanceTo(L.latLng(lat, lon)); // metri
+                    if (d > circleRadius) return; // scarta se fuori raggio
+                } catch (e) {
+                    // fallback: non filtrare se errore
+                }
+            }
+
             const marker = this._createRestaurantMarker(this.map, el, (payload) => this._onSelectMarker(payload, onSelect));
-            if (marker) this.markers.set(el.id, marker);
+            if (marker) {
+                const key = el.id ?? (`_${lat}_${lon}_${idx}`);
+                this.markers.set(key, marker);
+            }
         });
     }
 

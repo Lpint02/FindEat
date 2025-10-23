@@ -41,7 +41,6 @@ export default class HomeView {
         
   }//fine init
 
-  //---Metodi riguardanti i filtri---
 
   _bindFiltersUI() {
     const liked = document.getElementById('fltLiked');
@@ -51,45 +50,49 @@ export default class HomeView {
     const btnApply = document.getElementById('applyFiltersBtn');
     const btnReset = document.getElementById('resetFiltersBtn');
 
-    if (!liked || !reviewed || !dist || !distValue || !btnApply || !btnReset) return;
+    // distance + buttons are required; liked/reviewed optional
+    if (!dist || !distValue || !btnApply || !btnReset) {
+      console.warn('[FILTERS] elementi filtro distanza o bottoni mancanti, bind abortito');
+      return;
+    }
 
-    // Initialize UI from current state
-    liked.checked = this._currentFilters.liked;
-    reviewed.checked = this._currentFilters.reviewed;
-    dist.value = String(this._currentFilters.distanceKm);
-    distValue.textContent = `${this._currentFilters.distanceKm} km`;
+    // Initialize UI from current state (handle optional checkboxes)
+    if (liked) liked.checked = !!this._currentFilters.liked;
+    if (reviewed) reviewed.checked = !!this._currentFilters.reviewed;
+    dist.value = String(this._currentFilters.distanceKm ?? this._defaultFilters.distanceKm ?? 5);
+    distValue.textContent = `${parseInt(dist.value, 10)} km`;
     this._updateFilterButtonsState();
 
     const onChange = () => {
-      this._currentFilters = {
-        liked: !!liked.checked,
-        reviewed: !!reviewed.checked,
-        distanceKm: parseInt(dist.value, 10)
-      };
+      // update only keys that exist in UI (keep others as-is)
+      this._currentFilters.distanceKm = parseInt(dist.value, 10);
+      if (liked) this._currentFilters.liked = !!liked.checked;
+      if (reviewed) this._currentFilters.reviewed = !!reviewed.checked;
       distValue.textContent = `${this._currentFilters.distanceKm} km`;
       this._updateFilterButtonsState();
     };
 
-    liked.addEventListener('change', onChange);
-    reviewed.addEventListener('change', onChange);
+    if (liked) liked.addEventListener('change', onChange);
+    if (reviewed) reviewed.addEventListener('change', onChange);
     dist.addEventListener('input', onChange);
 
     btnReset.addEventListener('click', () => {
+      // reset to default (defaults may not include liked/reviewed in GenericHomeView)
       this._currentFilters = { ...this._defaultFilters };
-      liked.checked = this._currentFilters.liked;
-      reviewed.checked = this._currentFilters.reviewed;
-      dist.value = String(this._currentFilters.distanceKm);
-      distValue.textContent = `${this._currentFilters.distanceKm} km`;
+      if (liked) liked.checked = !!this._currentFilters.liked;
+      if (reviewed) reviewed.checked = !!this._currentFilters.reviewed;
+      dist.value = String(this._currentFilters.distanceKm ?? this._defaultFilters.distanceKm ?? 5);
+      distValue.textContent = `${parseInt(dist.value, 10)} km`;
       this._updateFilterButtonsState();
-      // Inform controller to re-fetch with defaults
       this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
     });
 
     btnApply.addEventListener('click', () => {
-      this._updateFilterButtonsState(true); // disable right away
+      this._updateFilterButtonsState(true);
       this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
     });
   }
+
 
   _filtersAreDefault() {
     const a = this._defaultFilters, b = this._currentFilters;
