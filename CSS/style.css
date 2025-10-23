@@ -369,11 +369,11 @@ html, body {
     .review-author:hover { text-decoration: underline; }
     .review-time { font-size: 14px; color: #666; }
 
-    /* Stars row */
-  .review-stars { display: flex; align-items: center; gap: 4px; margin: 0; }
-    .review-stars .star { font-size: 30px; line-height: 1; }
-    .review-stars .star.on { color: #FFD54A; margin: 0 0 0 0; }
-    .review-stars .star.off { color: #ddd; }
+    /* Stars row (applied to review template wrapper .review-stars-wrap) */
+  .review-stars-wrap { display: flex; align-items: center; gap: 4px; margin: 0; }
+    .review-stars-wrap .star { font-size: 30px; line-height: 1; }
+    .review-stars-wrap .star.on { color: #FFD54A; margin: 0; }
+    .review-stars-wrap .star.off { color: #ddd; }
     .review-rating-number { font-weight: 800; color: #111; font-size: 16px; }
     .review-text { white-space: pre-wrap; }
 
