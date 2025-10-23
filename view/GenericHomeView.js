@@ -50,12 +50,6 @@ export default class GenericHomeView extends HomeView {
             }
         });
 
-        // Rimuovi i pulsanti "Mi piace" e "Aggiungi recensione"
-        const likeBtn = document.getElementById('dpLikeBtn');
-        likeBtn?.remove();
-        const reviewBtn = document.getElementById('dpAddReviewBtn');
-        reviewBtn?.remove();
-
         // Cambia testo dei bottoni
         const resetBtn = document.getElementById('resetFiltersBtn');
         const applyBtn = document.getElementById('applyFiltersBtn');
@@ -63,7 +57,7 @@ export default class GenericHomeView extends HomeView {
         if (applyBtn) applyBtn.textContent = "Applica";
 
         // Richiama il metodo _bindFiltersUI per collegare gli eventi al filtro della distanza
-        this._bindFiltersUI();
+        //this._bindFiltersUI();
 
         // Delegate to parent init
         await super.init();

@@ -13,6 +13,21 @@ function getDb() {
 }
 
 export default class FirestoreService {
+  // Utility statica: verifica se un timestamp è più vecchio di 2 giorni
+  // Accetta: number (ms), string (ISO) o Date
+  static isOlderThanTwoDays(ts, nowMs = Date.now()) {
+    let tsMs = NaN;
+    if (typeof ts === 'number') {
+      tsMs = ts;
+    } else if (typeof ts === 'string') {
+      tsMs = Date.parse(ts);
+    } else if (ts instanceof Date) {
+      tsMs = ts.getTime();
+    }
+    if (!Number.isFinite(tsMs)) return true;
+    const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
+    return (nowMs - tsMs) > TWO_DAYS;
+  }
 
   // Metodo per recuperare un documento per ID
   async getById(collection, id) {
