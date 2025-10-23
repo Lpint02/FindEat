@@ -1,3 +1,8 @@
+// Controller principale della Home:
+// - orchestra geolocalizzazione, mappa, lista ristoranti, pannello dettagli
+// - coordina i servizi (Overpass per OSM, Google Places, Firestore)
+// - applica i filtri UI (liked, reviewed, distanza)
+// - gestisce azioni dell'utente (like, apertura dettagli, aggiunta/modifica recensione)
 import GeolocationService from "../services/GeolocationService.js";
 import OverpassService from "../services/OverpassService.js";
 import Restaurant from "../model/Restaurant.js";
@@ -9,22 +14,30 @@ import { auth } from "../services/firebase-config.js";
 
 export default class HomeController {
   constructor(view) {
-    this.view = view; // Vhome instance
+    // Istanza della View (HomeView) con cui comunichiamo per aggiornare l'interfaccia
+    this.view = view;
+    // Servizi applicativi
     this.geo = new GeolocationService();
     this.overpass = new OverpassService();
     this.watchId = null;
     this._placesService = null;
     this._firebase = null;
+    // Stato dei filtri applicati dalla UI
     this._filters = { liked: false, reviewed: false, distanceKm: 5 };
+    // Ultima posizione nota dell'utente (usata per ricaricare risultati/aggiornare raggio)
     this._lastUserPos = null;
+    // Ultimo elenco di ristoranti caricato (caching in memoria per ri-render senza rete)
     this._restaurants = [];
+    // Insiemi di ID per sapere rapidamente cosa è liked/recensito dall'utente corrente
     this._likedRestaurantIds = new Set();
     this._reviewedRestaurantIds = new Set();
+    // AbortController per cancellare richieste Overpass in corso quando cambiano i filtri
     this._abortController = null;
   }
 
   async init(filters) {
-    if (filters) this._filters = { ...this._filters, ...filters };
+    // Punto di ingresso della schermata Home: inizializza mappa, posizione, carica ristoranti e aggancia eventi.
+    if (filters) this._filters = { ...this._filters, ...filters }; //se init viene chiamata con nuovi filtri, li fonde a quelli esistenti (this._filters)
     const statusDiv = document.getElementById("status");
     const mapSpinner = document.getElementById('mapSpinner');
     const leftSpinner = document.getElementById('leftSpinner');
@@ -33,7 +46,9 @@ export default class HomeController {
       if (mapSpinner) mapSpinner.classList.remove('hidden');
       if (leftSpinner) leftSpinner.classList.remove('hidden');
 
-      // Get current position with a dedicated try/catch to surface precise geolocation errors
+      // Ottieni la posizione corrente con gestione errori granulare:
+      // - se la geolocalizzazione non è disponibile usiamo un fallback (L'Aquila) e lo comunichiamo in UI
+      // - se è una posizione cache recente, indichiamo all'utente che stiamo migliorando la precisione
       let pos;
       try {
         console.debug('HomeController: calling geo.getCurrentPosition()');
@@ -48,18 +63,18 @@ export default class HomeController {
       } catch (geoErr) {
         console.error('HomeController: geolocation error', geoErr);
         if (statusDiv) statusDiv.innerText = `⚠️ Errore geolocalizzazione: ${geoErr?.message || geoErr}`;
-        // Keep user informed but don't throw to the outer catch — just stop initialization
         return;
       }
 
-  const lat = pos.coords.latitude;
-  const lon = pos.coords.longitude;
-  this._lastUserPos = { lat, lon };
-  const kmInit = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
-  const radius = kmInit * 1000;
-  if (statusDiv) statusDiv.innerText = `✅ Posizione trovata! Cerco ristoranti entro ${radius} m...`;
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      this._lastUserPos = { lat, lon };
+      // Normalizziamo il raggio (1-10 km) partendo dal valore del filtro distanza
+      const kmInit = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
+      const radius = kmInit * 1000;
+      if (statusDiv) statusDiv.innerText = `✅ Posizione trovata! Cerco ristoranti entro ${radius} m...`;
 
-      // Initialize the map and user marker (defensive: check view exists)
+      // Inizializza la mappa centrata sulla posizione utente
       try {
         if (!this.view) throw new Error('View non inizializzata');
         this.view.initMap([lat, lon], radius);
@@ -70,26 +85,28 @@ export default class HomeController {
         return;
       }
 
-      // watch position updates (non-blocking)
-      try {
-        this.watchId = this.geo.watchPosition(p => {
-          try { this.view.updateUserPosition(p.coords.latitude, p.coords.longitude); } catch(e) { console.warn('updateUserPosition failed', e); }
-        });
-      } catch (watchErr) {
-        console.warn('HomeController: watchPosition failed', watchErr);
-      }
+      // Ascolta aggiornamenti di posizione (non bloccante) per muovere il marker utente sulla mappa (lo disattivo per ora)
+      // try {
+      //   this.watchId = this.geo.watchPosition(p => {
+      //     try { this.view.updateUserPosition(p.coords.latitude, p.coords.longitude); } catch(e) { console.warn('updateUserPosition failed', e); }
+      //   });
+      // } catch (watchErr) {
+      //   console.warn('HomeController: watchPosition failed', watchErr);
+      // }
 
-      // Initialize Firestore service and refresh liked/reviewed set for current user (non-blocking)
+      // Inizializza il servizio Firestore e pre-carica gli insiemi liked/recensiti dell'utente (non bloccante)
       try {
         this._firebase = new FirestoreService();
-        // attempt to refresh liked/reviewed sets, ignore errors
+        // tentativo di aggiornare gli insiemi liked/reviewed, ignora errori
         try { await this._refreshLikedSet(); } catch(e) { console.warn('refreshLikedSet failed', e); }
         try { await this._refreshReviewedSet(); } catch(e) { console.warn('refreshReviewedSet failed', e); }
       } catch(e) { console.warn('Unable to init Firestore service early', e); }
 
-  // Load restaurants (network call) and render UI
+      //Carica i ristoranti (chiamata di rete) e renderizza l'UI
       const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
-      // Annotate restaurants with docId and isLiked/isReviewed flags
+      // Annotiamo ogni ristorante con:
+      // - docId (chiave nel DB)
+      // - isLiked / isReviewed (per icone in lista e per filtri)
       for (const r of restaurants) {
         try {
           const docId = this._computeDocIdFromRestaurant(r);
@@ -105,15 +122,15 @@ export default class HomeController {
 
       if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
 
-      // Render markers and list (view handles UI bindings)
+      // Render mappa e lista (la View gestisce binding/eventi); applichiamo i filtri liked/reviewed se richiesti
       try {
         this._placesService = new GooglePlacesService();
-  // Apply liked/reviewed filters if active
-  let renderList = restaurants;
-  if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
-  if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
-        this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
-        this.view.renderList(renderList, (el) => this.onListSelect(el));
+        // Apply liked/reviewed filters if active
+        let renderList = restaurants;
+        if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
+          if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
+            this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
+            this.view.renderList(renderList, (el) => this.onListSelect(el));
       } catch (renderErr) {
         console.error('HomeController: errore rendering view', renderErr);
         if (statusDiv) statusDiv.innerText = '⚠️ Errore rendering UI.';
@@ -135,47 +152,50 @@ export default class HomeController {
   }
 
   /**
-   * Toggle like for a given restaurant docId. This will:
-   * - ensure the restaurant doc exists (merge save when needed)
-   * - atomically add/remove the current user id to Restaurant.liked
-   * - atomically add/remove the restaurant id to User.likedRestaurants
-   * Returns { ok: true, liked: boolean } on success, or { ok: false, error }
+   * Attiva/disattiva il "mi piace" per un ristorante dato il suo docId. Questo:
+   * - assicura che il documento Restaurant esista (salvataggio in merge se necessario)
+   * - aggiunge/rimuove in modo atomico l'uid dell'utente corrente in Restaurant.liked
+   * - aggiunge/rimuove in modo atomico l'id del ristorante in User.likedRestaurants
+   * Restituisce { ok: true, liked: boolean } in caso di successo, oppure { ok: false, error }
    */
   async toggleLike(docId, restaurantPayload) {
+    // Gestisce il click sul cuore:
+    // - se è il primo like, salviamo/mergiamo un payload minimo del ristorante in Restaurant/{docId}
+    // - aggiorniamo sia Restaurant.liked che User.likedRestaurants in modo atomico (arrayUnion/arrayRemove)
     try {
-      // Require auth
+      // Controlla autorizzazione utente
       const user = auth.currentUser;
       if (!user) return { ok: false, error: 'not-authenticated' };
       const uid = user.uid;
 
-      // Ensure firebase service available
+      // Assicura disponibilità servizio firebase
       if (!this._firebase) this._firebase = new FirestoreService();
 
-      // Ensure restaurant document exists on first like (merge save is safe)
+      // Assicura che il documento ristorante esista (solo al primo like)
       if (restaurantPayload) {
-        // Merge-save the basic payload (this will not remove existing fields)
+        // Salva/fondi il payload di base (questo non rimuoverà campi esistenti)
         await this._firebase.saveById('Restaurant', docId, restaurantPayload);
       }
 
-      // Read current restaurant doc to decide add/remove
+      // Leggi lo stato corrente dei like per decidere se quel click aggiunge o rimuove
       const saved = await this._firebase.getById('Restaurant', docId);
       const likedArray = Array.isArray(saved?.liked) ? saved.liked : [];
       const alreadyLiked = likedArray.includes(uid);
 
       if (!alreadyLiked) {
-        // Add user id to Restaurant.liked and restaurant id to User.likedRestaurants
+        // Aggiungi userId a Restaurant.liked e restaurant id a User.likedRestaurants
         const p1 = this._firebase.arrayUnionField('Restaurant', docId, 'liked', uid);
         const p2 = this._firebase.arrayUnionField('User', uid, 'likedRestaurants', docId);
         await Promise.all([p1, p2]);
-        // update local set
+        // aggiorna local set
         this._likedRestaurantIds.add(docId);
         return { ok: true, liked: true };
       } else {
-        // Remove
+        // Rimuovi userId da Restaurant.liked e restaurant id da User.likedRestaurants
         const p1 = this._firebase.arrayRemoveField('Restaurant', docId, 'liked', uid);
         const p2 = this._firebase.arrayRemoveField('User', uid, 'likedRestaurants', docId);
         await Promise.all([p1, p2]);
-        // update local set
+        // aggiorna local set
         this._likedRestaurantIds.delete(docId);
         return { ok: true, liked: false };
       }
@@ -185,8 +205,8 @@ export default class HomeController {
     }
   }
 
-  // Return saved restaurant doc (or null)
   async getSavedRestaurant(docId) {
+    // Ritorna il documento Restaurant/{docId} se esiste, altrimenti null
     try {
       if (!this._firebase) this._firebase = new FirestoreService();
       return await this._firebase.getById('Restaurant', docId);
@@ -197,18 +217,20 @@ export default class HomeController {
   }
 
   _computeDocIdFromRestaurant(r) {
-    // r.raw may contain type and id, otherwise fallback to stored docId
+    // Calcola il docId a partire dal nodo OSM (tipo+id). Se già presente, lo riusa.
+    // Esempio: osm_way_123456789
     const raw = r.raw ?? r;
     if (raw && raw.type && raw.id) return `osm_${raw.type}_${raw.id}`;
     return r.docId || null;
   }
 
   async _refreshLikedSet() {
+    // Popola l'insieme di ristoranti liked leggendo User/{uid}.likedRestaurants
     try {
       const user = auth.currentUser;
       this._likedRestaurantIds = new Set();
       if (!user) return;
-      // Read user doc to get likedRestaurants array
+      // Leggi User/{uid} doc to get likedRestaurants array
       if (!this._firebase) this._firebase = new FirestoreService();
       const udoc = await this._firebase.getById('User', user.uid);
       const arr = Array.isArray(udoc?.likedRestaurants) ? udoc.likedRestaurants : [];
@@ -219,6 +241,7 @@ export default class HomeController {
   }
 
   async _refreshReviewedSet() {
+    // Popola l'insieme di ristoranti recensiti dall'utente corrente interrogando Reviews
     try {
       const user = auth.currentUser;
       this._reviewedRestaurantIds = new Set();
@@ -234,7 +257,7 @@ export default class HomeController {
     }
   }
 
-  // Returns true if current logged-in user has liked the restaurant
+  // Restituisce true se l'utente corrente ha messo like al ristorante indicato
   async isRestaurantLikedByCurrentUser(docId) {
     try {
       const user = auth.currentUser;
@@ -248,51 +271,53 @@ export default class HomeController {
   }
 
   async applyFilters(filters) {
-    // Merge and re-fetch
-  this._filters = { ...this._filters, ...filters };
-  const statusDiv = document.getElementById('status');
-  const mapSpinner = document.getElementById('mapSpinner');
-  const leftSpinner = document.getElementById('leftSpinner');
-  if (!this._lastUserPos) return; // safety
-  const { lat, lon } = this._lastUserPos;
-  const kmApply = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
-  const radius = kmApply * 1000;
-  if (statusDiv) statusDiv.innerText = `🔄 Aggiorno risultati entro ${radius} m...`;
-  if (mapSpinner) mapSpinner.classList.remove('hidden');
-  if (leftSpinner) leftSpinner.classList.remove('hidden');
-    // Update map radius circle (view keeps persistent map)
-    try {
-      this.view.initMap([lat, lon], radius);
-      this.view.setUserMarker(lat, lon);
-    } catch(e) { /* ignore */ }
-
-  const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
-    if (!Array.isArray(restaurants) || restaurants.length === 0) {
-      if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
-      return;
-    }
-    if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
-    // Annotate and filter by liked/reviewed if required
-    for (const r of restaurants) {
+    // Applica i filtri scelti e ricarica i ristoranti in base al nuovo raggio
+    this._filters = { ...this._filters, ...filters };
+    const statusDiv = document.getElementById('status');
+    const mapSpinner = document.getElementById('mapSpinner');
+    const leftSpinner = document.getElementById('leftSpinner');
+    if (!this._lastUserPos) return; 
+    const { lat, lon } = this._lastUserPos;
+    const kmApply = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
+    const radius = kmApply * 1000;
+    if (statusDiv) statusDiv.innerText = `🔄 Aggiorno risultati entro ${radius} m...`;
+    if (mapSpinner) mapSpinner.classList.remove('hidden');
+    if (leftSpinner) leftSpinner.classList.remove('hidden');
+      // Aggiorna il raggio della mappa
       try {
-        const docId = this._computeDocIdFromRestaurant(r);
-        r.docId = docId;
-        r.isLiked = this._likedRestaurantIds.has(docId);
-        r.isReviewed = this._reviewedRestaurantIds.has(docId);
-      } catch(e) { r.isLiked = false; r.isReviewed = false; }
-    }
-    let renderList = restaurants;
-    if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
-    if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
-    this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
-    this.view.renderList(renderList, (el) => this.onListSelect(el));
-    if (mapSpinner) mapSpinner.classList.add('hidden');
-    if (leftSpinner) leftSpinner.classList.add('hidden');
+        this.view.initMap([lat, lon], radius);
+        this.view.setUserMarker(lat, lon);
+      } catch(e) { /* ignore */ }
+
+    const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
+      if (!Array.isArray(restaurants) || restaurants.length === 0) {
+        if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
+        return;
+      }
+      if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
+      // Annotiamo e filtriamo la lista in memoria in base a liked/reviewed attivi
+      for (const r of restaurants) {
+        try {
+          const docId = this._computeDocIdFromRestaurant(r);
+          r.docId = docId;
+          r.isLiked = this._likedRestaurantIds.has(docId);
+          r.isReviewed = this._reviewedRestaurantIds.has(docId);
+        } catch(e) { r.isLiked = false; r.isReviewed = false; }
+      }
+      let renderList = restaurants;
+      if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
+      if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
+      this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
+      this.view.renderList(renderList, (el) => this.onListSelect(el));
+      if (mapSpinner) mapSpinner.classList.add('hidden');
+      if (leftSpinner) leftSpinner.classList.add('hidden');
   }
 
   async _loadRestaurants(lat, lon, radius, statusDiv) {
+    // Richiama Overpass per ottenere i POI ristorante, calcola distanza e ordina per prossimità.
+    // Usa AbortController per evitare race condition se l'utente cambia rapidamente i filtri/raggio.
     try {
-      // Cancel previous in-flight Overpass request if any
+      // Cancella eventuali richieste precedenti in corso
       if (this._abortController) {
         try { this._abortController.abort(); } catch {}
       }
@@ -302,7 +327,6 @@ export default class HomeController {
       for (const r of list) r.computeDistance(lat, lon);
       list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
       this._restaurants = list;
-      // Note: liked/reviewed filters are UI-only placeholders for now
       return list;
     } catch (loadErr) {
       console.error('HomeController: errore caricando i ristoranti', loadErr);
@@ -312,17 +336,22 @@ export default class HomeController {
   }
 
   onMarkerSelected({ data, fallbackName, el }) {
+    // Entrata unica per mostrare il pannello dettagli con i dati disponibili (Google/DB/solo OSM)
     if (this.view?.showDetails) {
-      // Ensure UI bindings for the detail panel are initialized (like/keys/prev-next)
+      // Assicuriamoci che gli eventi del pannello dettagli siano bindati una sola volta
       if (typeof this.view.bindDetailPanelEventsOnce === 'function') this.view.bindDetailPanelEventsOnce();
       // el è Restaurant
       this.view.showDetails(data, fallbackName, el);
     }
   }
 
-  // New: centralize enrichment logic here (Firebase + Google Places) previously in markerManager
   async handleMarkerClick({ el, location, fallbackName }) {
-    // el è Restaurant: recupera raw quando serve
+    // Click su marker/lista:
+    // 1) proviamo a leggere Restaurant/{docId} da Firestore (cache locale del ristorante)
+    // 2) se presente, valutiamo se le foto sono "stale" (>2 giorni) e tentiamo un refresh da Google Places
+    // 3) se non presente, usiamo Google Places per arricchire i dati e salviamo in Restaurant/{docId}
+    // 4) se anche Places fallisce, mostriamo dettagli minimi basati su OSM
+    // Nota: le foto sono URL pre-generati e salvati nel DB per evitare 403 al ri-rendering
     const raw = el.raw ?? el; // compat: se mai venisse passato il raw
     const lat = location?.lat; const lon = location?.lon;
     const name = fallbackName || el?.name || el?.tags?.name;
@@ -374,13 +403,13 @@ export default class HomeController {
       console.warn('Firebase getById failed (non blocking)', e);
     }
 
-    // No saved doc -> try Google Places
+    // Nessun documento salvato -> provalo con Google Places e persisti (merge) il risultato
     try {
       const place = await this._placesService.getDetailsByName(name, lat, lon);
       const openNow = (place?.current_opening_hours?.open_now ?? place?.opening_hours?.open_now);
       const weekdayText = place?.current_opening_hours?.weekday_text || place?.opening_hours?.weekday_text || null;
-  // Foto: generiamo URL e li SALVIAMO nel DB 
-  const photos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
+      // Foto: generiamo URL e li SALVIAMO nel DB 
+      const photos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
 
       const toSaveRaw = {
         name: place?.name || name,
@@ -422,13 +451,16 @@ export default class HomeController {
   }
 
   onListSelect(el) {
-    // el è Restaurant: Chiede alla View di attivare il marker corrispondente
+    // Dalla lista, selezione di un ristorante: chiediamo alla View di selezionare il marker corrispondente sulla mappa
     this.view.selectOnMapById(el.id);
   }
 
   onBack() {
+    // Torna dalla vista dettagli alla lista e ri-applica i filtri correnti
     this.view.clearMapSelection();
     this.view.showList();
+    // Re-render the list applying current filters so unliked items disappear when 'Solo liked' is active
+    try { this._reRenderListForCurrentFilters(); } catch (e) { console.warn('re-render after back failed', e); }
   }
 
   // Photo navigation callbacks used by the view bindings (keyboard/prev/next)
@@ -460,11 +492,36 @@ export default class HomeController {
     } catch (e) { console.warn('onNextPhoto fallback failed', e); }
   }
 
+  _reRenderListForCurrentFilters() {
+    // Ri-renderizza la lista a sinistra senza toccare la mappa, usando i ristoranti già caricati e gli insiemi liked/reviewed
+    try {
+      const restaurants = Array.isArray(this._restaurants) ? this._restaurants : [];
+      // annotate
+      for (const r of restaurants) {
+        try {
+          const docId = this._computeDocIdFromRestaurant(r);
+          r.docId = docId;
+          r.isLiked = this._likedRestaurantIds.has(docId);
+          r.isReviewed = this._reviewedRestaurantIds && this._reviewedRestaurantIds.has ? this._reviewedRestaurantIds.has(docId) : false;
+        } catch(e) { r.isLiked = false; r.isReviewed = false; }
+      }
+      // filter
+      let renderList = restaurants;
+      if (this._filters?.liked) renderList = renderList.filter(r => r.isLiked);
+      if (this._filters?.reviewed) renderList = renderList.filter(r => r.isReviewed);
+      // render only the list (keep map as-is)
+      this.view.renderList(renderList, (el) => this.onListSelect(el));
+    } catch(e) {
+      console.warn('Failed to re-render list with current filters', e);
+    }
+  }
+
   destroy() {
     if (this.watchId) this.geo.clearWatch(this.watchId);
   }
 
   async logout() {
+    // Effettua logout dall'app: chiama AuthService, pulisce lo storage e torna alla pagina iniziale
     let result = await AuthService.logout();
     if (result) {
       console.log("Logout avvenuto con successo");
@@ -482,14 +539,14 @@ export default class HomeController {
   getCurrentUserId() {
     return auth.currentUser ? auth.currentUser.uid : null;
   }
-    // Nota: il controllo "più vecchio di 2 giorni" è stato spostato in FirestoreService.isOlderThanTwoDays
 
-    // --- Recensioni utente ---
-    /**
-     * Crea una recensione utente su Firestore (collection Reviews).
-     * Richiede utente loggato. La view deve passare author_name (da localStorage), rating (obbligatorio), text (opzionale).
-     */
-    async addUserReview({ restaurantId, restaurantName, author_name, rating, text }) {
+  /**
+   * Aggiunge o aggiorna (upsert) la recensione dell'utente corrente per un dato ristorante.
+   * - Usa il model Review per normalizzare i dati
+   * - Scrive su Firestore duplicando i campi ID (AuthorID/authorId, RestaurantID/restaurantId) per compatibilità
+   * - Se esiste già una recensione dell'utente per quel ristorante, fa un update; altrimenti crea un nuovo documento
+   */
+  async addUserReview({ restaurantId, restaurantName, author_name, rating, text }) {
       try {
         const user = auth.currentUser;
         if (!user) return { ok: false, error: 'not-authenticated' };
@@ -543,9 +600,10 @@ export default class HomeController {
       }
     }
 
-    /**
-     * Recupera le recensioni utente per un ristorante.
-     */
+  /**
+   * Recupera le recensioni utente per un ristorante e le mappa in istanze Review per la View.
+   * Mantiene firestoreId come proprietà addizionale per eventuali update/eliminazioni future.
+   */
     async fetchUserReviews(restaurantId) {
       try {
         if (!this._firebase) this._firebase = new FirestoreService();
