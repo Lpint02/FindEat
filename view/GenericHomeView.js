@@ -42,6 +42,8 @@ export default class GenericHomeView extends HomeView {
             filtersTitle.textContent = "Distanza";
         }
 
+        // --- Aggiustamento pagina rispetto alla home utente loggato ---
+
         // Rimuovi "Solo liked" e "Solo recensiti"
         document.querySelectorAll('.filters-row-1 .filter-label').forEach(label => {
             const span = label.querySelector('.filter-text');
