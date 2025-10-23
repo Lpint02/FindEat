@@ -131,6 +131,16 @@ export default class HomeView {
       if (parts.length) frag.appendChild(document.createTextNode(' '));
     }
 
+    if (el.isReviewed) {
+      const rev = document.createElement('span');
+      rev.className = 'li-reviewed';
+      rev.setAttribute('aria-hidden', 'true');
+      rev.title = 'Hai recensito questo ristorante';
+      rev.textContent = '✍';
+      frag.appendChild(rev);
+      if (parts.length) frag.appendChild(document.createTextNode(' '));
+    }
+
     if (parts.length) {
       frag.appendChild(document.createTextNode(parts[0]));
       for (let i = 1; i < parts.length; i++) frag.appendChild(document.createTextNode(' · ' + parts[i]));

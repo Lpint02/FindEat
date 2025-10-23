@@ -1,6 +1,7 @@
 import GeolocationService from "../services/GeolocationService.js";
 import OverpassService from "../services/OverpassService.js";
 import Restaurant from "../model/Restaurant.js";
+import Review from "../model/Review.js";
 import GooglePlacesService from "../services/GooglePlacesService.js";
 import FirestoreService from "../services/FirestoreService.js";
 import AuthService from "../services/AuthService.js";
@@ -18,6 +19,7 @@ export default class HomeController {
     this._lastUserPos = null;
     this._restaurants = [];
     this._likedRestaurantIds = new Set();
+    this._reviewedRestaurantIds = new Set();
     this._abortController = null;
   }
 
@@ -77,18 +79,24 @@ export default class HomeController {
         console.warn('HomeController: watchPosition failed', watchErr);
       }
 
-      // Initialize Firestore service and refresh liked set for current user (non-blocking)
+      // Initialize Firestore service and refresh liked/reviewed set for current user (non-blocking)
       try {
         this._firebase = new FirestoreService();
-        // attempt to refresh liked set, ignore errors
+        // attempt to refresh liked/reviewed sets, ignore errors
         try { await this._refreshLikedSet(); } catch(e) { console.warn('refreshLikedSet failed', e); }
+        try { await this._refreshReviewedSet(); } catch(e) { console.warn('refreshReviewedSet failed', e); }
       } catch(e) { console.warn('Unable to init Firestore service early', e); }
 
   // Load restaurants (network call) and render UI
       const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
-      // Annotate restaurants with docId and isLiked flag
+      // Annotate restaurants with docId and isLiked/isReviewed flags
       for (const r of restaurants) {
-        try { const docId = this._computeDocIdFromRestaurant(r); r.docId = docId; r.isLiked = this._likedRestaurantIds.has(docId); } catch(e) { r.isLiked = false; }
+        try {
+          const docId = this._computeDocIdFromRestaurant(r);
+          r.docId = docId;
+          r.isLiked = this._likedRestaurantIds.has(docId);
+          r.isReviewed = this._reviewedRestaurantIds.has(docId);
+        } catch(e) { r.isLiked = false; r.isReviewed = false; }
       }
       if (!Array.isArray(restaurants) || restaurants.length === 0) {
         if (statusDiv) statusDiv.innerText = "😔 Nessun ristorante trovato.";
@@ -100,8 +108,10 @@ export default class HomeController {
       // Render markers and list (view handles UI bindings)
       try {
         this._placesService = new GooglePlacesService();
-        // Apply liked filter if active
-        const renderList = this._filters.liked ? restaurants.filter(r => r.isLiked) : restaurants;
+  // Apply liked/reviewed filters if active
+  let renderList = restaurants;
+  if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
+  if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
         this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
         this.view.renderList(renderList, (el) => this.onListSelect(el));
       } catch (renderErr) {
@@ -208,6 +218,22 @@ export default class HomeController {
     }
   }
 
+  async _refreshReviewedSet() {
+    try {
+      const user = auth.currentUser;
+      this._reviewedRestaurantIds = new Set();
+      if (!user) return;
+      if (!this._firebase) this._firebase = new FirestoreService();
+      const reviews = await this._firebase.getUserReviews(user.uid);
+      for (const rv of (reviews || [])) {
+        const rid = rv.RestaurantID || rv.restaurantId;
+        if (rid) this._reviewedRestaurantIds.add(rid);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh reviewed set', e);
+    }
+  }
+
   // Returns true if current logged-in user has liked the restaurant
   async isRestaurantLikedByCurrentUser(docId) {
     try {
@@ -246,11 +272,18 @@ export default class HomeController {
       return;
     }
     if (statusDiv) statusDiv.innerText = `🍽️ Trovati ${restaurants.length} ristoranti!`;
-    // Annotate and filter by liked if required
+    // Annotate and filter by liked/reviewed if required
     for (const r of restaurants) {
-      try { const docId = this._computeDocIdFromRestaurant(r); r.docId = docId; r.isLiked = this._likedRestaurantIds.has(docId); } catch(e) { r.isLiked = false; }
+      try {
+        const docId = this._computeDocIdFromRestaurant(r);
+        r.docId = docId;
+        r.isLiked = this._likedRestaurantIds.has(docId);
+        r.isReviewed = this._reviewedRestaurantIds.has(docId);
+      } catch(e) { r.isLiked = false; r.isReviewed = false; }
     }
-    const renderList = this._filters.liked ? restaurants.filter(r => r.isLiked) : restaurants;
+    let renderList = restaurants;
+    if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
+    if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
     this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
     this.view.renderList(renderList, (el) => this.onListSelect(el));
     if (mapSpinner) mapSpinner.classList.add('hidden');
@@ -446,6 +479,9 @@ export default class HomeController {
   isLoggedIn() {
     return !!auth.currentUser;
   }
+  getCurrentUserId() {
+    return auth.currentUser ? auth.currentUser.uid : null;
+  }
     // Nota: il controllo "più vecchio di 2 giorni" è stato spostato in FirestoreService.isOlderThanTwoDays
 
     // --- Recensioni utente ---
@@ -459,10 +495,11 @@ export default class HomeController {
         if (!user) return { ok: false, error: 'not-authenticated' };
         if (!(rating >= 1 && rating <= 5)) return { ok: false, error: 'invalid-rating' };
         if (!this._firebase) this._firebase = new FirestoreService();
-        const review = {
-          AuthorID: user.uid,
-          RestaurantID: restaurantId,
-          RestaurantName: restaurantName || '',
+        // Costruisci un Review model per normalizzare i campi
+        const reviewModel = new Review({
+          authorID: user.uid,
+          restaurantID: restaurantId,
+          restaurantName: restaurantName || '',
           author_name: author_name || '',
           language: 'it',
           original_language: 'it',
@@ -470,9 +507,36 @@ export default class HomeController {
           text: text || '',
           time: new Date().toISOString(),
           translated: false
+        });
+
+        // Upsert: if user already reviewed this restaurant, update that review; else create a new one
+        const myReviews = await this._firebase.getUserReviews(user.uid);
+        const existing = (myReviews || []).find(rv => (rv.RestaurantID || rv.restaurantId) === restaurantId);
+        // Converte dal model a payload compatibile con Firestore (duplicando i campi ID)
+        const payload = {
+          AuthorID: reviewModel.authorID,
+          authorId: reviewModel.authorID,
+          RestaurantID: reviewModel.restaurantID,
+          restaurantId: reviewModel.restaurantID,
+          RestaurantName: reviewModel.restaurantName,
+          author_name: reviewModel.author_name,
+          language: reviewModel.language,
+          original_language: reviewModel.original_language,
+          rating: reviewModel.rating,
+          text: reviewModel.text,
+          time: reviewModel.time,
+          translated: reviewModel.translated
         };
-        const res = await this._firebase.addReview(review);
-        return res;
+        if (existing && existing.firestoreId) {
+          await this._firebase.saveById('Reviews', existing.firestoreId, payload);
+          try { await this._firebase.saveById('reviews', existing.firestoreId, payload); } catch {}
+          this._reviewedRestaurantIds.add(restaurantId);
+          return { ok: true, id: existing.firestoreId, data: { ...existing, ...payload } };
+        } else {
+          const res = await this._firebase.addReview(payload);
+          if (res?.ok) this._reviewedRestaurantIds.add(restaurantId);
+          return res;
+        }
       } catch (e) {
         console.error('addUserReview failed', e);
         return { ok: false, error: e };
@@ -485,7 +549,24 @@ export default class HomeController {
     async fetchUserReviews(restaurantId) {
       try {
         if (!this._firebase) this._firebase = new FirestoreService();
-        return await this._firebase.getReviewsByRestaurant(restaurantId);
+        const rows = await this._firebase.getReviewsByRestaurant(restaurantId);
+        // Mappa a Review model per la View (mantiene anche firestoreId come proprietà addizionale)
+        return (rows || []).map(r => {
+          const model = new Review({
+            authorID: r.AuthorID || r.authorId || '',
+            restaurantID: r.RestaurantID || r.restaurantId || restaurantId,
+            restaurantName: r.RestaurantName || r.restaurantName || '',
+            author_name: r.author_name || '',
+            language: r.language || 'it',
+            original_language: r.original_language || 'it',
+            rating: typeof r.rating === 'number' ? r.rating : 0,
+            text: r.text || '',
+            time: r.time || new Date().toISOString(),
+            translated: !!r.translated
+          });
+          if (r.firestoreId) model.firestoreId = r.firestoreId;
+          return model;
+        });
       } catch (e) {
         console.error('fetchUserReviews failed', e);
         return [];

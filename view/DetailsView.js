@@ -154,8 +154,28 @@ export default class DetailsView {
 
         const avatarWrap = node.querySelector('.review-avatar-wrapper');
         if (avatarWrap) {
-          if (avatar) { const img = document.createElement('img'); img.className = 'review-avatar'; img.src = avatar; img.alt = `Foto profilo di ${name}`; avatarWrap.appendChild(img); }
-          else { const fb = document.createElement('div'); fb.className='review-avatar fallback'; fb.setAttribute('aria-hidden','true'); fb.textContent='👤'; avatarWrap.appendChild(fb); }
+          if (avatar) {
+            const img = document.createElement('img');
+            img.className = 'review-avatar';
+            img.src = avatar;
+            img.alt = `Foto profilo di ${name}`;
+            // Se l'immagine non carica, sostituisci con l'omino fallback
+            img.onerror = () => {
+              try { img.remove(); } catch {}
+              const fb = document.createElement('div');
+              fb.className = 'review-avatar fallback';
+              fb.setAttribute('aria-hidden','true');
+              fb.textContent = '👤';
+              avatarWrap.appendChild(fb);
+            };
+            avatarWrap.appendChild(img);
+          } else {
+            const fb = document.createElement('div');
+            fb.className='review-avatar fallback';
+            fb.setAttribute('aria-hidden','true');
+            fb.textContent='👤';
+            avatarWrap.appendChild(fb);
+          }
         }
         const authorWrap = node.querySelector('.review-author-wrap');
         if (authorWrap) {
@@ -236,6 +256,15 @@ export default class DetailsView {
             const googleCount = Array.isArray(data?.reviews) ? data.reviews.length : 0;
             const reviewsCount = document.getElementById('dpReviewsCount');
             if (reviewsCount) reviewsCount.textContent = `(${googleCount + this._userReviews.length})`;
+            // If current user has a review, update button label to "Modifica recensione"
+            try {
+              const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null;
+              if (uid) {
+                const mine = this._userReviews.find(r => (r.AuthorID || r.authorId || r.authorID) === uid);
+                const addBtn2 = document.getElementById('dpAddReviewBtn');
+                if (mine && addBtn2) addBtn2.textContent = 'Modifica recensione';
+              }
+            } catch {}
           }
         }
       } catch (e) {
@@ -250,6 +279,11 @@ export default class DetailsView {
       addBtn.classList.toggle('is-disabled', !isLogged);
       addBtn.setAttribute('aria-disabled', String(!isLogged));
       if (!isLogged) addBtn.title = 'Accedi per aggiungere una recensione'; else addBtn.title = '';
+      // Set initial label based on list annotation: if already reviewed, show Modifica
+      try {
+        if (el && el.isReviewed) addBtn.textContent = 'Modifica recensione';
+        else addBtn.textContent = 'Aggiungi recensione';
+      } catch {}
     }
   }
 
@@ -418,11 +452,17 @@ export default class DetailsView {
         if (nameInput) {
           try { nameInput.value = localStorage.getItem('userName') || 'Anonimo'; } catch { nameInput.value = 'Anonimo'; }
         }
-        let currentRating = null;
+        // Prefill existing review if present for current user
+  const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null;
+  const existing = uid ? (this._userReviews || []).find(r => (r.AuthorID || r.authorId || r.authorID) === uid) : null;
+        let currentRating = existing && typeof existing.rating === 'number' ? existing.rating : null;
         const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
         const ratingInput = formRoot.querySelector('#arfRating');
         const saveBtn = formRoot.querySelector('#arfSave');
         const cancelBtn = formRoot.querySelector('#arfCancel');
+        const ta = formRoot.querySelector('#arfText');
+        if (ta && existing && typeof existing.text === 'string') ta.value = existing.text;
+        if (saveBtn && existing) saveBtn.textContent = 'Aggiorna';
         const renderStars = (val = currentRating) => {
         stars.forEach((s, idx) => { const active = val != null && idx < val; s.classList.toggle('active', !!active); s.style.color = active ? '#FFD54A' : '#ddd'; });
         if (saveBtn) saveBtn.disabled = (val == null);
@@ -444,13 +484,24 @@ export default class DetailsView {
             this._showToast('Recensione aggiunta con successo', 'success');
             // Ripristina lista precedente
             if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else { while (listEl.firstChild) listEl.removeChild(listEl.firstChild); }
-            // Aggiorna lista locale e append la nuova user review dopo Google
-            const saved = res.data; if (!Array.isArray(this._userReviews)) this._userReviews = []; this._userReviews.unshift(saved);
-            this._renderUserReviewsAppend([saved]);
+            // Ricarica recensioni utente e rinfresca solo le user-review nodes
+            try {
+              const ctx2 = this._currentDetail || {}; const rid2 = ctx2?.docId;
+              if (rid2 && this.controller && typeof this.controller.fetchUserReviews === 'function') {
+                const fresh = await this.controller.fetchUserReviews(rid2);
+                this._userReviews = Array.isArray(fresh) ? fresh : [];
+                const list2 = document.getElementById('dpReviewsList');
+                if (list2) list2.querySelectorAll('.review.user-review').forEach(n => n.remove());
+                this._renderUserReviewsAppend(this._userReviews);
+              }
+            } catch {}
             // Aggiorna contatore totale
             const googleCount = Array.isArray(this._currentDetail?.data?.reviews) ? this._currentDetail.data.reviews.length : 0;
             const reviewsCountEl = document.getElementById('dpReviewsCount');
             if (reviewsCountEl) reviewsCountEl.textContent = `(${googleCount + this._userReviews.length})`;
+            // Update CTA to Modifica recensione
+            const addBtn3 = document.getElementById('dpAddReviewBtn');
+            if (addBtn3) addBtn3.textContent = 'Modifica recensione';
           } catch (e) {
             console.warn('Errore salvataggio recensione', e);
             this._showToast('Errore durante il salvataggio della recensione.', 'error');
@@ -467,12 +518,39 @@ export default class DetailsView {
       for (const r of reviews) {
         let node = reviewTpl ? document.importNode(reviewTpl.content, true).querySelector('.review') : document.createElement('div');
         if (!reviewTpl) node.className = 'review';
+        node.classList.add('user-review');
         const name = r.author_name || 'Anonimo';
         const rating = (typeof r.rating === 'number' && isFinite(r.rating)) ? r.rating : null;
         const text = r.text || '';
         // avatar fallback
         const avatarWrap = node.querySelector('.review-avatar-wrapper');
-        if (avatarWrap) { const fb = document.createElement('div'); fb.className='review-avatar fallback'; fb.setAttribute('aria-hidden','true'); fb.textContent='👤'; avatarWrap.appendChild(fb); }
+        if (avatarWrap) {
+          let rendered = false;
+          try {
+            const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null;
+            const authorId = r.AuthorID || r.authorId || r.authorID || null;
+            if (uid && authorId && uid === authorId) {
+              // Try to use current user's profile photo from localStorage
+              let photoRaw = null; try { photoRaw = localStorage.getItem('userPhoto'); } catch {}
+              const photoUrl = photoRaw ? (() => { try { return JSON.parse(photoRaw); } catch { return null; } })() : null;
+              if (photoUrl) {
+                const img = document.createElement('img');
+                img.className = 'review-avatar';
+                img.src = photoUrl;
+                img.alt = 'La tua foto profilo';
+                img.onerror = () => {
+                  try { img.remove(); } catch {}
+                  const fb = document.createElement('div'); fb.className='review-avatar fallback'; fb.setAttribute('aria-hidden','true'); fb.textContent='👤'; avatarWrap.appendChild(fb);
+                };
+                avatarWrap.appendChild(img);
+                rendered = true;
+              }
+            }
+          } catch {}
+          if (!rendered) {
+            const fb = document.createElement('div'); fb.className='review-avatar fallback'; fb.setAttribute('aria-hidden','true'); fb.textContent='👤'; avatarWrap.appendChild(fb);
+          }
+        }
         const authorWrap = node.querySelector('.review-author-wrap'); if (authorWrap) { const s = document.createElement('span'); s.className='review-author'; s.textContent = name; authorWrap.appendChild(s); }
         const timeEl = node.querySelector('.review-time'); if (timeEl && r.time) { try { timeEl.textContent = new Date(r.time).toLocaleDateString('it-IT'); } catch { timeEl.textContent = ''; } }
         const starsWrap = node.querySelector('.review-stars-wrap'); if (starsWrap) starsWrap.innerHTML = this._buildReviewStars(rating);
