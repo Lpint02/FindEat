@@ -223,15 +223,15 @@ export default class HomeController {
 
   async applyFilters(filters) {
     // Merge and re-fetch
-    this._filters = { ...this._filters, ...filters };
+  this._filters = { ...this._filters, ...filters };
   const statusDiv = document.getElementById('status');
   const mapSpinner = document.getElementById('mapSpinner');
   const leftSpinner = document.getElementById('leftSpinner');
-    if (!this._lastUserPos) return; // safety
+  if (!this._lastUserPos) return; // safety
   const { lat, lon } = this._lastUserPos;
   const kmApply = Math.max(1, Math.min(10, this._filters.distanceKm || 5));
   const radius = kmApply * 1000;
-    if (statusDiv) statusDiv.innerText = `🔄 Aggiorno risultati entro ${radius} m...`;
+  if (statusDiv) statusDiv.innerText = `🔄 Aggiorno risultati entro ${radius} m...`;
   if (mapSpinner) mapSpinner.classList.remove('hidden');
   if (leftSpinner) leftSpinner.classList.remove('hidden');
     // Update map radius circle (view keeps persistent map)
@@ -295,27 +295,47 @@ export default class HomeController {
     const name = fallbackName || el?.name || el?.tags?.name;
     const docId = `osm_${raw.type}_${raw.id}`;
 
-    // Ensure Places service is available
+    // Assicuriamoci che il servizio Places sia disponibile
     if (!this._placesService) this._placesService = new GooglePlacesService();
 
-    // Start with firebase if available
+    // Recupero da Firebase se disponibile
     try {
       console.log('HomeController: checking Firebase for docId', docId);
       const saved = await this._firebase.getById('Restaurant', docId);
       if (saved) {
-        // Per le foto: NON usare URL salvati (sono temporanei e diventano 403).
-        // Se abbiamo un placeId, recupera foto fresche via Places e mostrale senza persistere.
-        let dataToShow = { ...saved };
-        if (saved.placeId) {
-          try {
-            const place = await this._placesService.getDetailsById(saved.placeId);
-            const photos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
-            if (Array.isArray(photos) && photos.length) dataToShow.photos = photos;
-          } catch(e) {
-            console.warn('Unable to refresh photos from Places for saved doc', e);
-          }
+        // Salviamo gli URL delle foto in DB, ma quando le recuperiamo controlliamo
+        // se savedAt è più vecchio di 2 giorni rinfreschiamo le foto e aggiorniamo il DB.
+        const now = Date.now();
+        const tooOld = FirestoreService.isOlderThanTwoDays(saved?.savedAt, now);
+
+        // Se NON è troppo vecchio e ci sono foto salvate, usa direttamente quelle
+        if (!tooOld && Array.isArray(saved.photos) && saved.photos.length > 0) {
+          return this.onMarkerSelected({ data: saved, fallbackName: name, el });
         }
-        return this.onMarkerSelected({ data: dataToShow, fallbackName: name, el });
+
+        // Altrimenti prova a rinfrescare da Google Places (preferibilmente via placeId)
+        let dataUpdated = { ...saved };
+        try {
+          console.log("troppo vecchio, rinfresco foto da Google Places");
+          let place = null;
+          if (saved.placeId) {
+            place = await this._placesService.getDetailsById(saved.placeId);
+          } else {
+            // Se manca placeId, prova un match per nome/posizione per ottenerlo
+            place = await this._placesService.getDetailsByName(name, lat, lon);
+            if (place?.place_id && !saved.placeId) dataUpdated.placeId = place.place_id;
+          }
+          const newPhotos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
+          if (newPhotos.length > 0) {
+            dataUpdated.photos = newPhotos;
+          }
+          dataUpdated.savedAt = new Date(now).toISOString();
+          // Persisto le modifiche (merge) per aggiornare savedAt e, se trovate, le foto/placeId
+          try { await this._firebase.saveById('Restaurant', docId, dataUpdated); } catch(e) { console.warn('Impossibile aggiornare il ristorante con le nuove foto', e); }
+        } catch(e) {
+          console.warn('Refresh foto fallito: uso dati salvati in DB', e);
+        }
+        return this.onMarkerSelected({ data: dataUpdated, fallbackName: name, el });
       }
     } catch(e) {
       console.warn('Firebase getById failed (non blocking)', e);
@@ -326,8 +346,8 @@ export default class HomeController {
       const place = await this._placesService.getDetailsByName(name, lat, lon);
       const openNow = (place?.current_opening_hours?.open_now ?? place?.opening_hours?.open_now);
       const weekdayText = place?.current_opening_hours?.weekday_text || place?.opening_hours?.weekday_text || null;
-      // Foto: genera URL freschi SOLO per la visualizzazione, non salvarli nel DB (sono temporanei)
-      const displayPhotos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
+  // Foto: generiamo URL e li SALVIAMO nel DB 
+  const photos = place?.photos?.slice(0,5).map(p => p.getUrl({ maxWidth:800, maxHeight:600 })) || [];
 
       const toSaveRaw = {
         name: place?.name || name,
@@ -352,14 +372,14 @@ export default class HomeController {
         dine_in: place?.dine_in || false,
         takeout: place?.takeout || false,
         wheelchair_accessible_entrance: place?.wheelchair_accessible_entrance || false,
+        photos,
         location: { lat, lng: lon },
         savedAt: new Date().toISOString()
       };
       const toSave = JSON.parse(JSON.stringify(toSaveRaw)); // strip undefined
       try { await this._firebase.saveById('Restaurant', docId, toSave); } catch(e) { console.warn('Impossibile salvare su Firebase (non blocking)', e); }
-      // Mostra i dettagli usando foto fresche senza persistenza
-      const toShow = { ...toSave, photos: displayPhotos };
-      return this.onMarkerSelected({ data: toShow, fallbackName: name, el });
+      // Mostra i dettagli usando i dati appena salvati (incluso photos)
+      return this.onMarkerSelected({ data: toSave, fallbackName: name, el });
     } catch(e) {
       console.warn('Google Places fallback failed (non blocking)', e);
     }
