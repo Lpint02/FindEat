@@ -216,4 +216,12 @@ export default class ProfiloController {
             this.view.noLikedRestaurant();
         }
     }
+
+    //metodo per togliere like al ritorante
+    async unlikeRestaurant(restaurantID)
+    {
+        const userID = await this.fetchUserID();
+        let result = await this.firestore.removeLikedRestaurant(userID, restaurantID);
+        // da continuare.......
+    }
 }
