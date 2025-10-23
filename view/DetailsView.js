@@ -5,10 +5,11 @@ export default class DetailsView {
         this._currentPhotoIndex = 0;
         this._detailBindingsInitialized = false;
         this._savedReviewsHtml = null;
+        this._userReviews = [];
     }
     setController(ctrl) { this.controller = ctrl; }
     // La view mostra i dettagli
-  showDetails(data, fallbackName, el) {
+    showDetails(data, fallbackName, el) {
     const detailView = document.getElementById('detailView');
     const listView = document.getElementById('listView');
     const filtersBar = document.getElementById('filtersBar');
@@ -20,6 +21,14 @@ export default class DetailsView {
     document.body.classList.add('detail-mode');
     const statusDiv = document.getElementById('status');
     if (statusDiv) statusDiv.style.display = 'none';
+
+    // Reset any previous detail content to avoid stacking between restaurants
+    this._savedReviewsHtml = null;
+    this._userReviews = [];
+    const detailsEl = document.getElementById('dpDetails');
+    if (detailsEl) {
+      while (detailsEl.firstChild) detailsEl.removeChild(detailsEl.firstChild);
+    }
 
     const titleEl = document.getElementById('dpTitle');
     const baseName = data?.name || fallbackName || (el?.name ?? el?.tags?.name ?? 'Dettagli ristorante');
@@ -43,7 +52,8 @@ export default class DetailsView {
       img.src = '';
     }
 
-    const detailsEl = document.getElementById('dpDetails');
+  // detailsEl already cleared above
+    
     // compact data extraction
     const tags = el?.tags || {};
     const g = data || {};
@@ -123,7 +133,7 @@ export default class DetailsView {
     const ratingNumEl = document.getElementById('dpRatingNumber');
     if (ratingNumEl) ratingNumEl.textContent = rating ? rating : '';
 
-    // Reviews: populate using template
+  // Reviews: populate Google reviews using template
     const reviewsListEl = document.getElementById('dpReviewsList');
     const reviewsCount = document.getElementById('dpReviewsCount');
     while (reviewsListEl.firstChild) reviewsListEl.removeChild(reviewsListEl.firstChild);
@@ -163,6 +173,8 @@ export default class DetailsView {
       else { const none = document.createElement('div'); none.className='review'; none.textContent='Nessuna recensione disponibile.'; reviewsListEl.appendChild(none); }
       if (reviewsCount) reviewsCount.textContent = '';
     }
+
+    // (fetch delle recensioni utente verrà avviato dopo che _currentDetail è stato impostato)
 
     // Ensure the detail panel UI bindings (like, prev/next, keyboard) are attached once.
     // Prepare current detail context for persistence actions (like)
@@ -210,6 +222,35 @@ export default class DetailsView {
         } catch (e) { console.warn('Error refreshing like state', e); }
       })();
     } catch(e) { /* ignore */ }
+    
+    // Carica e mostra le recensioni UTENTE dopo quelle di Google (ora che _currentDetail è pronto)
+    (async () => {
+      try {
+        const ctx = this._currentDetail || {};
+        const rid = ctx.docId;
+        if (rid && this.controller && typeof this.controller.fetchUserReviews === 'function') {
+          const userReviews = await this.controller.fetchUserReviews(rid);
+          this._userReviews = Array.isArray(userReviews) ? userReviews : [];
+          if (this._userReviews.length) {
+            this._renderUserReviewsAppend(this._userReviews);
+            const googleCount = Array.isArray(data?.reviews) ? data.reviews.length : 0;
+            const reviewsCount = document.getElementById('dpReviewsCount');
+            if (reviewsCount) reviewsCount.textContent = `(${googleCount + this._userReviews.length})`;
+          }
+        }
+      } catch (e) {
+        console.warn('Impossibile caricare recensioni utente', e);
+      }
+    })();
+
+    // Abilita/Disabilita il bottone Aggiungi recensione in base al login (anche al primo showDetails)
+    const addBtn = document.getElementById('dpAddReviewBtn');
+    if (addBtn) {
+      const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+      addBtn.classList.toggle('is-disabled', !isLogged);
+      addBtn.setAttribute('aria-disabled', String(!isLogged));
+      if (!isLogged) addBtn.title = 'Accedi per aggiungere una recensione'; else addBtn.title = '';
+    }
   }
 
     // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
@@ -227,6 +268,9 @@ export default class DetailsView {
         likeBtn.appendChild(sp);
       }
       likeBtn.addEventListener('click', async () => {
+        // richiede login
+        const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+        if (!isLogged) { this._showToast('Devi essere loggato per fare questo', 'error'); return; }
         // optimistic UI toggle
         const sp = likeBtn.querySelector('span');
         likeBtn.classList.toggle('liked');
@@ -252,6 +296,7 @@ export default class DetailsView {
             likeBtn.classList.toggle('liked');
             if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
             console.warn('toggleLike failed', res?.error);
+            this._showToast('Operazione non riuscita', 'error');
           } else {
             // ensure final UI matches server and update likes chip
             if (res.liked) {
@@ -261,6 +306,7 @@ export default class DetailsView {
                 const cur = parseInt(likeChip.textContent, 10) || 0;
                 likeChip.textContent = `${cur + 1} ❤️`;
               }
+              this._showToast('Aggiunto ai preferiti', 'success');
             } else {
               likeBtn.classList.remove('liked');
               if (sp) sp.textContent = '♡';
@@ -268,6 +314,7 @@ export default class DetailsView {
                 const cur = parseInt(likeChip.textContent, 10) || 0;
                 likeChip.textContent = `${Math.max(0, cur - 1)} ❤️`;
               }
+              this._showToast('Rimosso dai preferiti', 'info');
             }
           }
         } catch (e) {
@@ -275,6 +322,7 @@ export default class DetailsView {
           // revert optimistic UI
           likeBtn.classList.toggle('liked');
           if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+          this._showToast('Errore durante il like', 'error');
         }
       });
       likeBtn.__bound = true;
@@ -317,13 +365,44 @@ export default class DetailsView {
 
     // Add review button -> opens inline form replacing the reviews list
     const addBtn = document.getElementById('dpAddReviewBtn');
-    if (addBtn && !addBtn.__bound) {
-      addBtn.addEventListener('click', () => this._showAddReviewForm());
-      addBtn.__bound = true;
+    if (addBtn) {
+      const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+      addBtn.classList.toggle('is-disabled', !isLogged);
+      addBtn.setAttribute('aria-disabled', String(!isLogged));
+      if (!isLogged) addBtn.title = 'Accedi per aggiungere una recensione'; else addBtn.title = '';
+      if (!addBtn.__bound) {
+        addBtn.addEventListener('click', () => {
+          const ok = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
+          if (!ok) { this._showToast('Devi essere loggato per fare questo', 'error'); return; }
+          this._showAddReviewForm();
+        });
+        addBtn.__bound = true;
+      }
     }
   }
 
-  // Renders an inline form in place of reviews list. Placeholder only: name fixed, cancel works; save not implemented.
+  // Toast helper (namespaced CSS: fe-toast)
+  _showToast(message, variant = 'success') {
+    try {
+      let container = document.querySelector('.fe-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'fe-toast-container';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      toast.className = `fe-toast fe-toast--${variant}`;
+      toast.setAttribute('role', variant === 'error' ? 'alert' : 'status');
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('fe-toast--hide');
+        setTimeout(() => { try { toast.remove(); } catch {} }, 250);
+      }, 2500);
+    } catch {}
+  }
+
+  // Renders an inline form in place of reviews list. Nome da localStorage, rating obbligatorio; salva via controller
     _showAddReviewForm() {
         const listEl = document.getElementById('dpReviewsList');
         if (!listEl) return;
@@ -334,6 +413,11 @@ export default class DetailsView {
         if (node) listEl.appendChild(node);
         // wiring
         const formRoot = listEl.querySelector('#addReviewForm') || listEl;
+        // set default name from localStorage
+        const nameInput = formRoot.querySelector('#arfName');
+        if (nameInput) {
+          try { nameInput.value = localStorage.getItem('userName') || 'Anonimo'; } catch { nameInput.value = 'Anonimo'; }
+        }
         let currentRating = null;
         const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
         const ratingInput = formRoot.querySelector('#arfRating');
@@ -346,8 +430,55 @@ export default class DetailsView {
         stars.forEach(b => b.addEventListener('click', () => { const v = parseInt(b.dataset.value, 10); currentRating = (v>=1 && v<=5)? v : null; if (ratingInput) ratingInput.value = currentRating != null ? String(currentRating) : ''; renderStars(); }));
         if (ratingInput) ratingInput.addEventListener('input', () => { const v = parseInt(ratingInput.value, 10); currentRating = (!isNaN(v) && v>=1 && v<=5) ? v : null; renderStars(); });
         if (cancelBtn) cancelBtn.addEventListener('click', () => { if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else while (listEl.firstChild) listEl.removeChild(listEl.firstChild); });
-        if (saveBtn) saveBtn.addEventListener('click', () => { /* TODO: call controller to persist review */ });
+        if (saveBtn) saveBtn.addEventListener('click', async () => {
+          try {
+            const nameVal = (formRoot.querySelector('#arfName')?.value || 'Anonimo');
+            const textVal = (formRoot.querySelector('#arfText')?.value || '').trim();
+            const rating = currentRating;
+            if (!(rating >= 1 && rating <= 5)) return;
+            const ctx = this._currentDetail || {}; const restaurantId = ctx?.docId; const restaurantName = ctx?.payload?.name || '';
+            if (!restaurantId || !this.controller || typeof this.controller.addUserReview !== 'function') return;
+            const res = await this.controller.addUserReview({ restaurantId, restaurantName, author_name: nameVal, rating, text: textVal });
+            if (!res || !res.ok) { this._showToast('Impossibile aggiungere la recensione. Riprova.', 'error'); return; }
+            // Toast di successo
+            this._showToast('Recensione aggiunta con successo', 'success');
+            // Ripristina lista precedente
+            if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else { while (listEl.firstChild) listEl.removeChild(listEl.firstChild); }
+            // Aggiorna lista locale e append la nuova user review dopo Google
+            const saved = res.data; if (!Array.isArray(this._userReviews)) this._userReviews = []; this._userReviews.unshift(saved);
+            this._renderUserReviewsAppend([saved]);
+            // Aggiorna contatore totale
+            const googleCount = Array.isArray(this._currentDetail?.data?.reviews) ? this._currentDetail.data.reviews.length : 0;
+            const reviewsCountEl = document.getElementById('dpReviewsCount');
+            if (reviewsCountEl) reviewsCountEl.textContent = `(${googleCount + this._userReviews.length})`;
+          } catch (e) {
+            console.warn('Errore salvataggio recensione', e);
+            this._showToast('Errore durante il salvataggio della recensione.', 'error');
+          }
+        });
         renderStars();
+    }
+
+    // Appende recensioni utente al fondo della lista, con avatar standard mediante template
+    _renderUserReviewsAppend(reviews) {
+      const reviewsListEl = document.getElementById('dpReviewsList');
+      const reviewTpl = document.getElementById('dp-review-item-template');
+      if (!reviewsListEl || !Array.isArray(reviews) || !reviews.length) return;
+      for (const r of reviews) {
+        let node = reviewTpl ? document.importNode(reviewTpl.content, true).querySelector('.review') : document.createElement('div');
+        if (!reviewTpl) node.className = 'review';
+        const name = r.author_name || 'Anonimo';
+        const rating = (typeof r.rating === 'number' && isFinite(r.rating)) ? r.rating : null;
+        const text = r.text || '';
+        // avatar fallback
+        const avatarWrap = node.querySelector('.review-avatar-wrapper');
+        if (avatarWrap) { const fb = document.createElement('div'); fb.className='review-avatar fallback'; fb.setAttribute('aria-hidden','true'); fb.textContent='👤'; avatarWrap.appendChild(fb); }
+        const authorWrap = node.querySelector('.review-author-wrap'); if (authorWrap) { const s = document.createElement('span'); s.className='review-author'; s.textContent = name; authorWrap.appendChild(s); }
+        const timeEl = node.querySelector('.review-time'); if (timeEl && r.time) { try { timeEl.textContent = new Date(r.time).toLocaleDateString('it-IT'); } catch { timeEl.textContent = ''; } }
+        const starsWrap = node.querySelector('.review-stars-wrap'); if (starsWrap) starsWrap.innerHTML = this._buildReviewStars(rating);
+        const textEl = node.querySelector('.review-text'); if (textEl) textEl.textContent = text;
+        reviewsListEl.appendChild(node);
+      }
     }
 
     _showPhoto(index) {
