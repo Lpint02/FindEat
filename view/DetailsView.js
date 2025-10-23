@@ -1,4 +1,3 @@
-
 export default class DetailsView {
     constructor(controller = null) {
         this.controller = controller;
@@ -44,85 +43,96 @@ export default class DetailsView {
     }
 
     const detailsEl = document.getElementById('dpDetails');
+    // compact data extraction
     const tags = el?.tags || {};
     const g = data || {};
-    const distanceKm = typeof el?.distanceKm === 'number' ? `${el.distanceKm.toFixed(1)} km` : null;
-    const price = g.price_level != null ? '€'.repeat(g.price_level || 1) : null;
-    const rating = g.rating != null ? g.rating.toFixed(1) : null;
-    const totalRatings = g.user_ratings_total != null ? g.user_ratings_total : null;
+    const distanceKm = (typeof el?.distanceKm === 'number') ? `${el.distanceKm.toFixed(1)} km` : null;
+    const price = (g.price_level != null) ? '€'.repeat(g.price_level || 1) : null;
+    const rating = (g.rating != null) ? g.rating.toFixed(1) : null;
     const addr = g.formatted_address || null;
     const phone = g.international_phone_number || tags.phone || null;
     const website = g.website || tags.website || null;
     const cuisine = tags.cuisine || null;
-    const wheelchair = (g.wheelchair_accessible_entrance || tags.wheelchair === 'yes') ? '♿ Accessibile' : null;
-    const outdoor = tags.outdoor_seating === 'yes' ? '🌤️ Esterno' : null;
-    const smoking = tags.smoking === 'yes' ? '🚬 Fumatori' : (tags.smoking === 'no' ? '🚭 Non fumatori' : null);
-    const vegetarian = g.serves_vegetarian_food ? '🥦 Veg options' : null;
-    const breakfast = g.serves_breakfast ? '🍳 Colazione' : null;
-    const lunch = g.serves_lunch ? '🍝 Pranzo' : null;
-    const dinner = g.serves_dinner ? '🍽️ Cena' : null;
-    const dineIn = g.dine_in === false ? null : '🪑 Sala';
-    const delivery = g.delivery ? '🚚 Delivery' : null;
-    const takeout = g.takeout ? '🥡 Asporto' : null;
-    const reservable = g.reservable ? '📅 Prenotabile' : null;
-    const email = tags.email ? `✉️ ${tags.email}` : null;
-    const facebook = tags['contact:facebook'] ? `ⓕ Facebook` : null;
-    const instagram = tags['contact:instagram'] ? `📸 Instagram` : null;
-    const dietVegan = tags['diet:vegan'] === 'yes' ? '🌱 Vegan' : null;
-    const dietVegetarian = tags['diet:vegetarian'] === 'yes' ? '🥗 Vegetarian' : null;
-    const dietGlutenFree = tags['diet:gluten_free'] === 'yes' ? '🚫🌾 Gluten-free' : null;
-    const cards = (tags['payment:cards'] === 'yes' || tags['payment:credit_cards'] === 'yes') ? '💳 Carte' : null;
-    const cash = tags['payment:cash'] === 'no' ? null : (tags['payment:cash'] === 'yes' ? '💶 Contanti' : null);
 
+    // chips
     const chipMeta = [
-      { label: distanceKm, cat: 'meta' }, { label: price, cat: 'meta' },
-      { label: wheelchair, cat: 'access' }, { label: vegetarian, cat: 'diet' },
-      { label: breakfast, cat: 'service' }, { label: lunch, cat: 'service' }, { label: dinner, cat: 'service' },
-      { label: outdoor, cat: 'service' }, { label: smoking, cat: 'service' }, { label: dineIn, cat: 'service' },
-      { label: delivery, cat: 'service' }, { label: takeout, cat: 'service' }, { label: reservable, cat: 'service' },
-      { label: dietVegan, cat: 'diet' }, { label: dietVegetarian, cat: 'diet' }, { label: dietGlutenFree, cat: 'diet' },
-      { label: cards, cat: 'pay' }, { label: cash, cat: 'pay' }
+      { label: distanceKm, cat: 'meta' }, { label: price, cat: 'meta' }, { label: cuisine, cat: 'meta' }
     ];
-    // Likes count chip (show even if zero so position is stable)
     const likesCount = Array.isArray(g?.liked) ? g.liked.length : (Array.isArray(el?.liked) ? el.liked.length : 0);
     chipMeta.unshift({ label: `${likesCount} ❤️`, cat: 'meta', id: 'dpLikeChip' });
-    const chips = chipMeta.filter(o => o.label !== null && o.label !== undefined).map(o => {
-      const idAttr = o.id ? ` id="${o.id}"` : '';
-      return `<span class="chip" data-cat="${o.cat}"${idAttr}>${o.label}</span>`;
-    }).join('');
-    const contactLines = [
-      addr ? `<div class="fact"><span class="icon">📍</span><span class="fact-text">${addr}</span></div>` : '',
-      phone ? `<div class="fact"><span class="icon">📞</span><span class="fact-text">${phone}</span></div>` : '',
-      website ? `<div class="fact"><span class="icon">🔗</span><a href="${website}" target="_blank" rel="noopener" style="font-size: 18px;">Sito Web</a></div>` : '',
-      email ? `<div class="fact"><span class="icon">✉️</span><span class="fact-text">${email.replace('✉️ ','')}</span></div>` : '',
-      facebook ? `<div class="fact"><span class="icon">ⓕ</span><span class="fact-text">${facebook.replace('ⓕ ','')}</span></div>` : '',
-      instagram ? `<div class="fact"><span class="icon">📸</span><span class="fact-text">${instagram.replace('📸 ','')}</span></div>` : '',
-      cuisine ? `<div class="fact"><span class="icon">🍽️</span><span class="fact-text">${cuisine}</span></div>` : ''
-    ].filter(Boolean).join('');
+    // use chips template
+    const chipsTpl = document.getElementById('dp-chips-template');
+    if (chipsTpl) {
+      const chipsNode = document.importNode(chipsTpl.content, true);
+      const chipsSection = chipsNode.querySelector('.chips-section');
+      chipMeta.forEach(c => { if (c.label != null) {
+        const span = document.createElement('span'); span.className = 'chip'; span.dataset.cat = c.cat; if (c.id) span.id = c.id; span.textContent = c.label;
+        chipsSection.appendChild(span);
+      }});
+      detailsEl.appendChild(chipsSection);
+    }
 
+    // info card
+    const infoTpl = document.getElementById('dp-info-card-template');
+    if (infoTpl) {
+      const infoNode = document.importNode(infoTpl.content, true);
+      const factsGrid = infoNode.querySelector('.facts-grid');
+      const appendFact = (icon, text, isLink=false) => {
+        if (!text) return;
+        const div = document.createElement('div'); div.className = 'fact';
+        const ic = document.createElement('span'); ic.className = 'icon'; ic.textContent = icon;
+        const ft = document.createElement('span'); ft.className = 'fact-text';
+        if (isLink) { const a = document.createElement('a'); a.href = text; a.target = '_blank'; a.rel='noopener'; a.textContent='Sito Web'; a.style.fontSize='18px'; ft.appendChild(a); }
+        else ft.textContent = text;
+        div.appendChild(ic); div.appendChild(ft); factsGrid.appendChild(div);
+      };
+      appendFact('📍', addr);
+      appendFact('📞', phone);
+      appendFact('🔗', website, !!website);
+      if (tags.email) appendFact('✉️', tags.email);
+      if (tags['contact:facebook']) appendFact('ⓕ', tags['contact:facebook']);
+      if (tags['contact:instagram']) appendFact('📸', tags['contact:instagram']);
+      if (cuisine) appendFact('🍽️', cuisine);
+      detailsEl.appendChild(infoNode);
+    }
+
+    // hours (use template, renderOpeningHoursHTML returns HTML grid)
     const hoursSource = g.opening_hours_weekday_text || g.opening_hours || tags.opening_hours;
-    const hoursHtml = hoursSource ? `<div class="hours-block">${this.renderOpeningHoursHTML(hoursSource)}</div>` : '';
-    const editorial = g.editorial_summary?.overview ? `<div class="editorial"><p>${g.editorial_summary.overview}</p></div>` : '';
+    if (hoursSource) {
+      const hoursTpl = document.getElementById('dp-hours-card-template');
+      if (hoursTpl) {
+        const hoursNode = document.importNode(hoursTpl.content, true);
+        const block = hoursNode.querySelector('.hours-block');
+        block.innerHTML = this.renderOpeningHoursHTML(hoursSource);
+        detailsEl.appendChild(hoursNode);
+      }
+    }
 
-    detailsEl.innerHTML = `
-      <section class="chips-section">${chips}</section>
-      <section class="card info-card">
-        <h3 class="card-title">Info</h3>
-        <div class="facts-grid">${contactLines}</div>
-      </section>
-      ${hoursHtml ? `<section class=\"card hours-card\">${hoursHtml}</section>` : ''}
-      ${editorial ? `<section class=\"card editorial-card\">${editorial}</section>` : ''}
-    `;
+    // editorial
+    if (g.editorial_summary?.overview) {
+      const edTpl = document.getElementById('dp-editorial-template');
+      if (edTpl) {
+        const edNode = document.importNode(edTpl.content, true);
+        edNode.querySelector('.editorial-text').textContent = g.editorial_summary.overview;
+        detailsEl.appendChild(edNode);
+      }
+    }
 
     this._renderStars(g?.rating, 'dpStars');
     const ratingNumEl = document.getElementById('dpRatingNumber');
     if (ratingNumEl) ratingNumEl.textContent = rating ? rating : '';
 
+    // Reviews: populate using template
     const reviewsListEl = document.getElementById('dpReviewsList');
     const reviewsCount = document.getElementById('dpReviewsCount');
-    reviewsListEl.innerHTML = '';
+    while (reviewsListEl.firstChild) reviewsListEl.removeChild(reviewsListEl.firstChild);
+    const reviewTpl = document.getElementById('dp-review-item-template');
+    const noReviewTpl = document.getElementById('dp-no-reviews-template');
     if (Array.isArray(data?.reviews) && data.reviews.length) {
       data.reviews.forEach(r => {
+        let node = reviewTpl ? document.importNode(reviewTpl.content, true).querySelector('.review') : document.createElement('div');
+        if (!reviewTpl) node.className = 'review';
+        // fill fields
         const name = r.author_name || 'Anonimo';
         const url = r.author_url || null;
         const avatar = r.profile_photo_url || '';
@@ -131,36 +141,26 @@ export default class DetailsView {
         const relTime = r.relative_time_description || '';
         const text = r.text || '';
 
-        const starsHtml = this._buildReviewStars(rating);
-        const nameHtml = url ? `<a href="${url}" target="_blank" rel="noopener" class="review-author">${name}</a>`
-                             : `<span class="review-author">${name}</span>`;
-        const avatarHtml = avatar ? `<img class="review-avatar" src="${avatar}" alt="Foto profilo di ${name}">`
-                                  : `<div class="review-avatar fallback" aria-hidden="true">👤</div>`;
-        const rightCluster = (rounded != null)
-          ? `<div class="review-stars">${starsHtml}<span class="review-rating-number">(${rounded})</span></div>`
-          : '';
-
-        const div = document.createElement('div');
-        div.className = 'review';
-        div.innerHTML = `
-          <div class="review-header">
-            <div class="review-id">
-              ${avatarHtml}
-              <div class="review-header-text">
-                ${nameHtml}
-                ${relTime ? `<div class="review-time">${relTime}</div>` : ''}
-              </div>
-            </div>
-            ${rightCluster}
-          </div>
-          <div class="review-text">${text}</div>
-        `;
-        reviewsListEl.appendChild(div);
+        const avatarWrap = node.querySelector('.review-avatar-wrapper');
+        if (avatarWrap) {
+          if (avatar) { const img = document.createElement('img'); img.className = 'review-avatar'; img.src = avatar; img.alt = `Foto profilo di ${name}`; avatarWrap.appendChild(img); }
+          else { const fb = document.createElement('div'); fb.className='review-avatar fallback'; fb.setAttribute('aria-hidden','true'); fb.textContent='👤'; avatarWrap.appendChild(fb); }
+        }
+        const authorWrap = node.querySelector('.review-author-wrap');
+        if (authorWrap) {
+          if (url) { const a = document.createElement('a'); a.href = url; a.target='_blank'; a.rel='noopener'; a.className='review-author'; a.textContent = name; authorWrap.appendChild(a); }
+          else { const s = document.createElement('span'); s.className='review-author'; s.textContent = name; authorWrap.appendChild(s); }
+        }
+        const timeEl = node.querySelector('.review-time'); if (timeEl) timeEl.textContent = relTime;
+        const starsWrap = node.querySelector('.review-stars-wrap'); if (starsWrap) starsWrap.innerHTML = this._buildReviewStars(rating);
+        const textEl = node.querySelector('.review-text'); if (textEl) textEl.textContent = text;
+        reviewsListEl.appendChild(node);
       });
-      reviewsCount.textContent = `(${data.reviews.length})`;
+      if (reviewsCount) reviewsCount.textContent = `(${data.reviews.length})`;
     } else {
-      reviewsListEl.innerHTML = '<div class="review">Nessuna recensione disponibile.</div>';
-      reviewsCount.textContent = '';
+      if (noReviewTpl) reviewsListEl.appendChild(document.importNode(noReviewTpl.content, true));
+      else { const none = document.createElement('div'); none.className='review'; none.textContent='Nessuna recensione disponibile.'; reviewsListEl.appendChild(none); }
+      if (reviewsCount) reviewsCount.textContent = '';
     }
 
     // Ensure the detail panel UI bindings (like, prev/next, keyboard) are attached once.
@@ -326,87 +326,26 @@ export default class DetailsView {
   _showAddReviewForm() {
     const listEl = document.getElementById('dpReviewsList');
     if (!listEl) return;
-
-    // Save current HTML to restore on cancel
     if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
-
-    // Build a simple form UI
-    listEl.innerHTML = `
-      <form id="addReviewForm" class="add-review-form" onsubmit="return false;">
-        <div class="arf-row">
-          <label>Nome</label>
-          <input type="text" id="arfName" value="nome" disabled />
-        </div>
-        <div class="arf-row">
-          <label>Voto</label>
-          <div class="arf-stars" id="arfStars" role="radiogroup" aria-label="Seleziona voto in stelle">
-            ${[1,2,3,4,5].map(i => `<button type="button" class="arf-star" data-value="${i}" aria-label="${i} stelle">★</button>`).join('')}
-          </div>
-          <input type="number" id="arfRating" min="1" max="5" step="1" placeholder="1-5" inputmode="numeric" aria-label="Voto numerico" />
-        </div>
-        <div class="arf-row">
-          <label>Commento (facoltativo)</label>
-          <textarea id="arfText" rows="3" placeholder="Scrivi qui la tua esperienza (opzionale)"></textarea>
-        </div>
-        <div class="arf-actions">
-          <button type="button" id="arfCancel" class="btn-secondary">Annulla</button>
-          <button type="button" id="arfSave" class="btn-primary" disabled>Salva</button>
-        </div>
-      </form>
-    `;
-
-    // State
+    while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+    const addTpl = document.getElementById('dp-add-review-template');
+    const node = addTpl ? document.importNode(addTpl.content, true) : null;
+    if (node) listEl.appendChild(node);
+    // wiring
+    const formRoot = listEl.querySelector('#addReviewForm') || listEl;
     let currentRating = null;
-    const stars = Array.from(listEl.querySelectorAll('.arf-star'));
-    const ratingInput = listEl.querySelector('#arfRating');
-
-    const renderStars = () => {
-      stars.forEach((s, idx) => {
-        const active = currentRating != null && idx < currentRating;
-        s.classList.toggle('active', !!active);
-        s.style.color = active ? '#FFD54A' : '#ddd';
-      });
-      // Enable save only when a rating is selected (name fixed; text optional)
-      const saveBtn = listEl.querySelector('#arfSave');
-      if (saveBtn) saveBtn.disabled = (currentRating == null);
+    const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
+    const ratingInput = formRoot.querySelector('#arfRating');
+    const saveBtn = formRoot.querySelector('#arfSave');
+    const cancelBtn = formRoot.querySelector('#arfCancel');
+    const renderStars = (val = currentRating) => {
+      stars.forEach((s, idx) => { const active = val != null && idx < val; s.classList.toggle('active', !!active); s.style.color = active ? '#FFD54A' : '#ddd'; });
+      if (saveBtn) saveBtn.disabled = (val == null);
     };
-
-    // Star click -> set rating
-    stars.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const v = parseInt(btn.getAttribute('data-value'), 10);
-        currentRating = (v >= 1 && v <= 5) ? v : null;
-        ratingInput.value = currentRating != null ? String(currentRating) : '';
-        renderStars();
-      });
-    });
-
-    // Numeric input -> update stars
-    ratingInput.addEventListener('input', () => {
-      const v = parseInt(ratingInput.value, 10);
-      if (!isNaN(v) && v >= 1 && v <= 5) currentRating = v; else currentRating = null;
-      renderStars();
-    });
-
-    // Cancel -> restore previous list content
-    const cancelBtn = listEl.querySelector('#arfCancel');
-    if (cancelBtn) cancelBtn.addEventListener('click', () => {
-      if (this._savedReviewsHtml != null) {
-        listEl.innerHTML = this._savedReviewsHtml;
-        this._savedReviewsHtml = null;
-      } else {
-        listEl.innerHTML = '';
-      }
-    });
-
-    // Save (placeholder: not active yet)
-    const saveBtn = listEl.querySelector('#arfSave');
-    if (saveBtn) saveBtn.addEventListener('click', () => {
-      // Non implementato per ora. Potremo inviare al controller per persistenza.
-      // Intenzionalmente vuoto.
-    });
-
-    // Initial paint
+    stars.forEach(b => b.addEventListener('click', () => { const v = parseInt(b.dataset.value, 10); currentRating = (v>=1 && v<=5)? v : null; if (ratingInput) ratingInput.value = currentRating != null ? String(currentRating) : ''; renderStars(); }));
+    if (ratingInput) ratingInput.addEventListener('input', () => { const v = parseInt(ratingInput.value, 10); currentRating = (!isNaN(v) && v>=1 && v<=5) ? v : null; renderStars(); });
+    if (cancelBtn) cancelBtn.addEventListener('click', () => { if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else while (listEl.firstChild) listEl.removeChild(listEl.firstChild); });
+    if (saveBtn) saveBtn.addEventListener('click', () => { /* TODO: call controller to persist review */ });
     renderStars();
   }
 
