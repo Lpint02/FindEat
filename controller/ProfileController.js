@@ -224,6 +224,13 @@ export default class ProfiloController {
     {
         const userID = await this.fetchUserID();
         let result = await this.firestore.removeLikedRestaurant(userID, restaurantID);
-        // da continuare.......
+        if(result)
+        {
+            await this.loadLikedRestaurant();
+        }
+        else
+        {
+            console.warn("Errore durante la rimozione del like");
+        }
     }
 }

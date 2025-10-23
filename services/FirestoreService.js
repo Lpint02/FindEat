@@ -136,43 +136,43 @@ export default class FirestoreService {
   }
 
   //metodo per recuperare i ristoranti preferiti di un utente
-  async findLikedRestaurant (userID){
+  async findLikedRestaurant(userID) {
 
     const userRef = doc(db, "User", userID);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-        console.log("Utente non trovato");
-        return [];
+      console.log("Utente non trovato");
+      return [];
     }
 
     const likedRestaurants = userSnap.data().likedRestaurants || [];
     if (likedRestaurants.length === 0) {
-        console.log("Nessun ristorante nei like");
-        return [];
+      console.log("Nessun ristorante nei like");
+      return [];
     }
 
     const restaurants = [];
 
     // Firestore limita "in" a 10 elementi per volta
     for (let i = 0; i < likedRestaurants.length; i += 10) {
-        const chunk = likedRestaurants.slice(i, i + 10);
-        const q = query(collection(db, "Restaurant"), where("__name__", "in", chunk));
-        const snapshot = await getDocs(q);
+      const chunk = likedRestaurants.slice(i, i + 10);
+      const q = query(collection(db, "Restaurant"), where("__name__", "in", chunk));
+      const snapshot = await getDocs(q);
 
-        snapshot.forEach(docSnap => {
-            const data = docSnap.data();
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
 
-            // Qui formattiamo l'oggetto come vuoi tu
-            restaurants.push({
-                RestaurantName: data.name || "Senza nome",
-                RestaurantID: docSnap.id,
-                rating: data.rating || null,
-                price_level: data.price_level ?? null,
-                address: data.formatted_address || "Indirizzo non disponibile",
-                phone_number: data.international_phone_number || "Telefono non disponibile"
-            });
+        // Qui formattiamo l'oggetto come vuoi tu
+        restaurants.push({
+          RestaurantName: data.name || "Senza nome",
+          RestaurantID: docSnap.id,
+          rating: data.rating || null,
+          price_level: data.price_level ?? null,
+          address: data.formatted_address || "Indirizzo non disponibile",
+          phone_number: data.international_phone_number || "Telefono non disponibile"
         });
+      });
     }
 
     return restaurants;
@@ -209,6 +209,43 @@ export default class FirestoreService {
     } catch (e) {
       console.error("Errore recuperando recensioni per ristorante:", e);
       return [];
+    }
+  }
+
+  // metodo per eliminare un like di un ristorante
+  async removeLikedRestaurant(userID, restaurantID) {
+    console.log(" Rimuovo like per ristorante:", restaurantID, "dall'utente:", userID);
+
+    const db = getDb();
+    const userRef = doc(db, "User", userID);
+    const restaurantRef = doc(db, "Restaurants", restaurantID);
+
+    try {
+      // Aggiorna l'utente
+      await updateDoc(userRef, {
+        likedRestaurants: arrayRemove(restaurantID)
+      });
+
+      // Aggiorna il ristorante solo se esiste
+      try {
+        await updateDoc(restaurantRef, {
+          liked: arrayRemove(userID)
+        });
+      } catch (err) {
+        if (err.code === 'not-found' || (err.message && err.message.includes('No document to update'))) {
+          // Documento ristorante non esiste, ignora
+          console.warn(`Documento ristorante ${restaurantID} non trovato, skip update.`);
+        } else {
+          throw err;
+        }
+      }
+
+      console.log(`Rimosso like tra utente ${userID} e ristorante ${restaurantID}`);
+      return true;
+
+    } catch (err) {
+      console.error("Errore durante la rimozione del like:", err);
+      return false;
     }
   }
 }
