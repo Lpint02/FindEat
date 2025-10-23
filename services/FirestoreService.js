@@ -162,4 +162,8 @@ export default class FirestoreService {
 
     return restaurants;
   }
+
+  async removeLikedRestaurant(userID, restaurantID) {
+    console.log("Se sono qui , non sò perchè sono qui. Ma almeno sono qui.Sinceramente non ci sto capendo un Cazzo!!!!!!!!!");
+  }
 }

@@ -325,7 +325,7 @@ export default class ProfileView {
             btn.addEventListener("click", (e) => {
                 const restaurantId = e.currentTarget.getAttribute("data-id");
                 console.log("Ristorante da rimuovere:", restaurantId);
-                // this.controller.unlikeRestaurant(restaurantId) oppure dispatch evento
+                this.controller.unlikeRestaurant(restaurantId)
             });
         });
     }
