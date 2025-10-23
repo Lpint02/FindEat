@@ -182,11 +182,13 @@ export default class ProfiloController {
     //metodo per eliminare un'utente
     async deleteUser() {
         const user = auth.currentUser;
-        const result = await this.firestore.deleteById('User', user.uid);
-        if(result)
+        //const result = await this.firestore.deleteById('User', user.uid);
+        
+        if(true)
         {
             // Elimino l'utente da Firebase Authentication
             let result_delete_aut = await AuthService.deleteUser();
+            
             if(result_delete_aut)
             {
                 // Pulisco la sessione
@@ -215,5 +217,13 @@ export default class ProfiloController {
             console.log("Nessun risultato ottenuto dai like");
             this.view.noLikedRestaurant();
         }
+    }
+
+    //metodo per togliere like al ritorante
+    async unlikeRestaurant(restaurantID)
+    {
+        const userID = await this.fetchUserID();
+        let result = await this.firestore.removeLikedRestaurant(userID, restaurantID);
+        // da continuare.......
     }
 }

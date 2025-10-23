@@ -100,9 +100,87 @@
     </div>
   </div>
 
-    
+  <!-- Vista lista (default quando nessun ristorante è selezionato) -->
+  <div id="listView"></div>
 
-  
+  <!-- Template per un elemento della lista (usato da HomeView.renderList) -->
+  <template id="list-item-template">
+    <div class="list-item">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div>
+          <h3 class="li-title" data-li-name style="margin:0;"></h3>
+          <div class="li-meta" data-li-meta></div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: details chips + info + hours + editorial -->
+  <template id="dp-chips-template">
+    <section class="chips-section"></section>
+  </template>
+
+  <template id="dp-info-card-template">
+    <section class="card info-card">
+      <h3 class="card-title">Info</h3>
+      <div class="facts-grid"></div>
+    </section>
+  </template>
+
+  <template id="dp-hours-card-template">
+    <section class="card hours-card">
+      <div class="hours-block"></div>
+    </section>
+  </template>
+
+  <template id="dp-editorial-template">
+    <section class="card editorial-card"><p class="editorial-text"></p></section>
+  </template>
+
+  <!-- Template singola recensione -->
+  <template id="dp-review-item-template">
+    <div class="review">
+      <div class="review-header">
+        <div class="review-id">
+          <div class="review-avatar-wrapper"></div>
+          <div class="review-header-text">
+            <div class="review-author-wrap"></div>
+            <div class="review-time"></div>
+          </div>
+        </div>
+        <div class="review-stars-wrap"></div>
+      </div>
+      <div class="review-text"></div>
+    </div>
+  </template>
+
+  <!-- Template "nessuna recensione" -->
+  <template id="dp-no-reviews-template">
+    <div class="review">Nessuna recensione disponibile.</div>
+  </template>
+
+  <!-- Template add-review form -->
+  <template id="dp-add-review-template">
+    <form id="addReviewForm" class="add-review-form" onsubmit="return false;">
+      <div class="arf-row"><label>Nome</label><input type="text" id="arfName" value="nome" disabled /></div>
+      <div class="arf-row">
+        <label>Voto</label>
+        <div class="arf-stars" id="arfStars" role="radiogroup" aria-label="Seleziona voto in stelle">
+          <button type="button" class="arf-star" data-value="1" aria-label="1 stelle">★</button>
+          <button type="button" class="arf-star" data-value="2" aria-label="2 stelle">★</button>
+          <button type="button" class="arf-star" data-value="3" aria-label="3 stelle">★</button>
+          <button type="button" class="arf-star" data-value="4" aria-label="4 stelle">★</button>
+          <button type="button" class="arf-star" data-value="5" aria-label="5 stelle">★</button>
+        </div>
+        <input type="number" id="arfRating" min="1" max="5" step="1" placeholder="1-5" inputmode="numeric" aria-label="Voto numerico" />
+      </div>
+      <div class="arf-row"><label>Commento (facoltativo)</label><textarea id="arfText" rows="3" placeholder="Scrivi qui la tua esperienza (opzionale)"></textarea></div>
+      <div class="arf-actions"><button type="button" id="arfCancel" class="btn-secondary">Annulla</button><button type="button" id="arfSave" class="btn-primary" disabled>Salva</button></div>
+    </form>
+  </template>
 
   <!-- Librerie -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

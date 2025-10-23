@@ -7,17 +7,16 @@ export default class ProfileView {
         this.controller = null; // Controller instance
     }
 
-    init() 
-    {
+    init() {
         console.log("ProfileView initialized");
 
         //Controllo se l'utente ha la foto profilo
         let risultato_check = this.controller.checkUserProfilePhoto().esito;
-        if(risultato_check){
+        if (risultato_check) {
             console.log("Utente ha la foto profilo, la carico");
             this.controller.setUserProfilePhoto();
         }
-        else{
+        else {
             console.log("Utente non ha la foto profilo, carico immagine di default");
         }
 
@@ -57,30 +56,29 @@ export default class ProfileView {
 
         // Quando clicchi sul bottone, apri il selettore file
         btnEditPhoto.addEventListener('click', (e) => {
-        e.preventDefault();
-        inputPhoto.click(); // apre la finestra di selezione immagine
+            e.preventDefault();
+            inputPhoto.click(); // apre la finestra di selezione immagine
         });
 
         // Quando selezioni un file, passalo al controller
         inputPhoto.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && this.controller) {
-            this.controller.editUserProfilePhoto(file);
-        }
-       });
+            const file = e.target.files[0];
+            if (file && this.controller) {
+                this.controller.editUserProfilePhoto(file);
+            }
+        });
 
-       // Evento "Elimina foto profilo"
-       const btnRemovePhoto = document.getElementById('btn-remove-photo');
+        // Evento "Elimina foto profilo"
+        const btnRemovePhoto = document.getElementById('btn-remove-photo');
+        if (btnRemovePhoto) {
+            btnRemovePhoto.addEventListener('click', async (e) => {
+                e.preventDefault();
 
-       if (btnRemovePhoto) {
-        btnRemovePhoto.addEventListener('click', async (e) => {
-        e.preventDefault();
-
-               const conferma = confirm("Vuoi davvero eliminare la tua foto profilo?");
-               if (conferma && this.controller) {
-                   await this.controller.deleteUserProfilePhoto();
-               }
-           });
+                const conferma = confirm("Vuoi davvero eliminare la tua foto profilo?");
+                if (conferma && this.controller) {
+                    await this.controller.deleteUserProfilePhoto();
+                }
+            });
         }
 
         // Evento elimina proprio account
@@ -168,10 +166,14 @@ export default class ProfileView {
     //metodo chiamato dal controller per gestire la mancanza di ristoranti a cui si è fatto like
     noLikedRestaurant() {
         const container = document.getElementById('Conteiner_del_carosello');
-        container.innerHTML = ''; // Svuota il contenitore
+        container.innerHTML = '';
 
         const section = document.createElement('section');
         section.classList.add('empty-section');
+        section.style.width = '100vw';
+        section.style.maxWidth = '100%';
+        section.style.marginLeft = 'calc(-1 * (100vw - 100%) / 2)'; // per allineare a tutto schermo
+        section.style.borderRadius = '0';
 
         const div = document.createElement('div');
         div.classList.add('empty-icon');
@@ -191,70 +193,70 @@ export default class ProfileView {
 
     //metodo chiamato dal controller per disegnare il carosello dei ristoranti preferiti
     displayLikedRestaurant(restaurants) {
-    const container = document.getElementById('Conteiner_del_carosello');
-    const carouselInner = container.querySelector('.carousel-inner');
-    const template = document.getElementById('carousel-item-template');
+        const container = document.getElementById('Conteiner_del_carosello');
+        const carouselInner = container.querySelector('.carousel-inner');
+        const template = document.getElementById('carousel-item-template');
 
-    // Svuota il contenitore
-    carouselInner.innerHTML = '';
+        // Svuota il contenitore
+        carouselInner.innerHTML = '';
 
-    if (!restaurants || restaurants.length === 0) {
-        this.noLikedRestaurant();
-        return;
-    }
-
-    restaurants.forEach((rest, index) => {
-        // Clona il template
-        const carouselItem = document.importNode(template.content, true);
-
-        // Popola i dati dinamici
-        carouselItem.querySelector('[data-carousel="photo-url"]').src = rest.photo_url || 'images/images.png';
-        carouselItem.querySelector('[data-carousel="restaurant-name"]').textContent = rest.RestaurantName;
-        carouselItem.querySelector('[data-carousel="address"]').textContent = rest.address;
-        carouselItem.querySelector('[data-carousel="rating"]').textContent = `⭐ ${rest.rating ? rest.rating.toFixed(1) : 'N/A'}`;
-        carouselItem.querySelector('[data-carousel="details"]').textContent = `Prezzo: ${rest.price_level ?? '-'} | Tel: ${rest.phone_number ?? 'N/D'}`;
-        carouselItem.querySelector('.unlike-btn').setAttribute('data-id', rest.RestaurantID);
-
-        // Aggiungi evento per rimuovere il ristorante
-        carouselItem.querySelector('.unlike-btn').addEventListener('click', () => {
-            console.log('Ristorante da rimuovere:', rest.RestaurantID);
-            this.controller.unlikeRestaurant(rest.RestaurantID);
-        });
-
-        // Imposta l'elemento attivo
-        if (index === 0) {
-            carouselItem.querySelector('.carousel-item').classList.add('active');
+        if (!restaurants || restaurants.length === 0) {
+            this.noLikedRestaurant();
+            return;
         }
 
-        carouselInner.appendChild(carouselItem);
-    });
+        restaurants.forEach((rest, index) => {
+            // Clona il template
+            const carouselItem = document.importNode(template.content, true);
 
-    // Inizializza il carosello
-    this.initCarousel('Conteiner_del_carosello');
-}
+            // Popola i dati dinamici
+            carouselItem.querySelector('[data-carousel="photo-url"]').src = rest.photo_url || 'images/images.png';
+            carouselItem.querySelector('[data-carousel="restaurant-name"]').textContent = rest.RestaurantName;
+            carouselItem.querySelector('[data-carousel="address"]').textContent = rest.address;
+            carouselItem.querySelector('[data-carousel="rating"]').textContent = `⭐ ${rest.rating ? rest.rating.toFixed(1) : 'N/A'}`;
+            carouselItem.querySelector('[data-carousel="details"]').textContent = `Prezzo: ${rest.price_level ?? '-'} | Tel: ${rest.phone_number ?? 'N/D'}`;
+            carouselItem.querySelector('.unlike-btn').setAttribute('data-id', rest.RestaurantID);
+
+            // Aggiungi evento per rimuovere il ristorante
+            carouselItem.querySelector('.unlike-btn').addEventListener('click', () => {
+                console.log('Ristorante da rimuovere:', rest.RestaurantID);
+                this.controller.unlikeRestaurant(rest.RestaurantID);
+            });
+
+            // Imposta l'elemento attivo
+            if (index === 0) {
+                carouselItem.querySelector('.carousel-item').classList.add('active');
+            }
+
+            carouselInner.appendChild(carouselItem);
+        });
+
+        // Inizializza il carosello
+        this.initCarousel('Conteiner_del_carosello');
+    }
 
     //metodo per inizializzare il carosello
     initCarousel(carouselId) {
-    const carouselElem = document.getElementById(carouselId);
-    if (!carouselElem) {
-        console.warn('[CAROUSEL DEBUG] carouselElem non trovato al momento dell\'init.');
-        return false;
-    }
-    if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
-        try {
-            // Distruggi eventuale istanza precedente
-            if (carouselElem._bootstrapInstance) {
-                try { carouselElem._bootstrapInstance.dispose(); } catch (e) {}
-            }
-            const inst = new bootstrap.Carousel(carouselElem, { interval: false, ride: false });
-            carouselElem._bootstrapInstance = inst; // Riferimento per eventuale dispose futuro
-            console.log('[CAROUSEL DEBUG] Bootstrap.Carousel inizializzato (autoplay disattivato).');
-            return true;
-        } catch (e) {
-            console.warn('[CAROUSEL DEBUG] Errore inizializzazione Bootstrap.Carousel:', e);
+        const carouselElem = document.getElementById(carouselId);
+        if (!carouselElem) {
+            console.warn('[CAROUSEL DEBUG] carouselElem non trovato al momento dell\'init.');
             return false;
         }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
+            try {
+                // Distruggi eventuale istanza precedente
+                if (carouselElem._bootstrapInstance) {
+                    try { carouselElem._bootstrapInstance.dispose(); } catch (e) { }
+                }
+                const inst = new bootstrap.Carousel(carouselElem, { interval: false, ride: false });
+                carouselElem._bootstrapInstance = inst; // Riferimento per eventuale dispose futuro
+                console.log('[CAROUSEL DEBUG] Bootstrap.Carousel inizializzato (autoplay disattivato).');
+                return true;
+            } catch (e) {
+                console.warn('[CAROUSEL DEBUG] Errore inizializzazione Bootstrap.Carousel:', e);
+                return false;
+            }
+        }
+        return false;
     }
-    return false;
-}
 }

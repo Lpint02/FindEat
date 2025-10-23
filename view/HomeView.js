@@ -1,5 +1,6 @@
 import ProfiloController from "../controller/ProfileController.js";
 import MapView from "./MapView.js";
+import DetailsView from './DetailsView.js';
 
 export default class HomeView {
   //costruttore
@@ -9,6 +10,7 @@ export default class HomeView {
     this.listContainer = null;
     this.backBtn = null;
     this.mapView = new MapView(); // Delegato a MapView per separare le responsabilità della mappa
+    this.detailsView = new DetailsView(); 
     this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
     this._currentFilters = { ...this._defaultFilters };
 
@@ -41,7 +43,7 @@ export default class HomeView {
         
   }//fine init
 
-
+  // --- Parte dei filtri --- 
   _bindFiltersUI() {
     const liked = document.getElementById('fltLiked');
     const reviewed = document.getElementById('fltReviewed');
@@ -255,13 +257,35 @@ export default class HomeView {
     }
   }
 
-  // La view rende la lista e gestisce i click utente, notificando il controller via callback
+  // renderList semplificata: usa template quando presente, event delegation, nessun innerHTML
   renderList(items, onSelect) {
     const container = this.listContainer;
     if (!container) return;
-    container.innerHTML = '';
+
+    // rimuovi handler precedente (se presente)
+    if (container._listHandler) container.removeEventListener('click', container._listHandler);
+
+    // bind delegato: trova item o button clicked e richiama onSelect con l'elemento corrispondente
+    const handler = (e) => {
+      const btn = e.target.closest('.li-details');
+      const itemNode = e.target.closest('.list-item');
+      if (!itemNode) return;
+      const idx = itemNode.dataset.index ? Number(itemNode.dataset.index) : null;
+      const model = Array.isArray(container._items) && idx != null ? container._items[idx] : null;
+      if (btn) { e.stopPropagation(); onSelect && onSelect(model); }
+      else { onSelect && onSelect(model); }
+    };
+    container._listHandler = handler;
+    container.addEventListener('click', handler);
+
+    // svuota container
+    while (container.firstChild) container.removeChild(container.firstChild);
+
     if (!items || !items.length) {
-      container.innerHTML = '<div>Nessun ristorante trovato nell\'area selezionata.</div>';
+      const msg = document.createElement('div');
+      msg.textContent = "Nessun ristorante trovato nell'area selezionata.";
+      container.appendChild(msg);
+      container._items = [];
       return;
     }
     for (const el of items) {
@@ -596,7 +620,7 @@ export default class HomeView {
         listEl.innerHTML = this._savedReviewsHtml;
         this._savedReviewsHtml = null;
       } else {
-        listEl.innerHTML = '';
+        node = this._createItemDom(el, i);
       }
     });
 
@@ -720,6 +744,8 @@ export default class HomeView {
     if (statusDiv) statusDiv.style.display = '';
   }
 
+  // --- Parte della mappa ---
+
   // Mappa: delegata a MapView (stessa pagina, componenti separati)
   initMap(center, radius) { return this.mapView.initMap(center, radius); }
   setUserMarker(lat, lon) { return this.mapView.setUserMarker(lat, lon); }
@@ -728,87 +754,22 @@ export default class HomeView {
   selectOnMapById(id) { return this.mapView.selectOnMapById(id); }
   clearMapSelection() { return this.mapView.clearMapSelection(); }
 
-  // Helpers per stelle/orari/foto
-  _renderStars(value, containerId = 'stars') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = '';
-    if (value == null) return;
-    const full = Math.floor(value);
-    const half = (value - full) >= 0.5;
-    for (let i = 0; i < 5; i++) {
-      const span = document.createElement('span');
-      span.className = 'star';
-      if (i < full) { span.innerText = '★'; span.style.color = '#FFD54A'; }
-      else if (i === full && half) {
-        span.innerText = '★';
-        span.style.background = 'linear-gradient(90deg,#FFD54A 50%, #ddd 50%)';
-        span.style.WebkitBackgroundClip = 'text';
-        span.style.backgroundClip = 'text';
-        span.style.color = 'transparent';
-      } else { span.innerText = '★'; span.style.color = '#ddd'; }
-      container.appendChild(span);
+
+  // --- Parte dei dettagli ---
+  showDetails(data, fallbackName, el) {
+    // ensure controller is available to details view
+    if (this.detailsView && typeof this.detailsView.setController === 'function') {
+      this.detailsView.setController(this.controller);
+    }
+    if (this.detailsView && typeof this.detailsView.showDetails === 'function') {
+      this.detailsView.showDetails(data, fallbackName, el);
     }
   }
 
-  renderOpeningHoursHTML(opening) {
-    if (!opening) return '';
-    let lines = [];
-    if (Array.isArray(opening)) lines = opening.slice();
-    else if (typeof opening === 'string') lines = opening.includes('|') ? opening.split('|').map(s => s.trim()).filter(Boolean) : opening.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    const dayMap = {};
-    lines.forEach(l => { const idx = l.indexOf(':'); if (idx > -1) dayMap[l.slice(0, idx).trim()] = l.slice(idx + 1).trim(); });
-    const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    const displayNames = { 'Monday':'Lun','Tuesday':'Mar','Wednesday':'Mer','Thursday':'Gio','Friday':'Ven','Saturday':'Sab','Sunday':'Dom' };
-    const variants = {
-      'Monday': ['Monday','Mon','Luned','Lunedì','Lunedi','Lun'],
-      'Tuesday': ['Tuesday','Tue','Mart','Martedì','Martedi','Mar'],
-      'Wednesday': ['Wednesday','Wed','Mercoledì','Mercoledi','Mer'],
-      'Thursday': ['Thursday','Thu','Giovedì','Giovedi','Gio'],
-      'Friday': ['Friday','Fri','Venerdì','Venerdi','Ven'],
-      'Saturday': ['Saturday','Sat','Sabato','Sab'],
-      'Sunday': ['Sunday','Sun','Domenica','Dom']
-    };
-    const todayIndex = new Date().getDay();
-    const todayKey = todayIndex === 0 ? 'Sunday' : daysOrder[todayIndex - 1];
-    const boxes = daysOrder.map(day => {
-      let found = null;
-      for (const k in dayMap) {
-        for (const v of variants[day]) { if (k.toLowerCase().startsWith(v.toLowerCase())) { found = dayMap[k]; break; } }
-        if (found) break;
-      }
-      let display = 'Chiuso';
-      if (found) display = /chiuso|closed/i.test(found) ? 'Chiuso' : found.replace(/–/g,'-');
-      const todayClass = day === todayKey ? ' today' : '';
-      return `<div class="hours-box${todayClass}"><div class="hours-day">${displayNames[day]}</div><div class="hours-interval">${display}</div></div>`;
-    }).join('');
-    return `<div class="hours-grid">${boxes}</div>`;
-  }
-
-  _showPhoto(index) {
-    const img = document.getElementById('dpCurrentPhoto');
-    const noPhotoMsg = document.getElementById('dpNoPhotoMsg');
-    if (!img || !this._photosArray || this._photosArray.length === 0) return;
-    this._currentPhotoIndex = (index + this._photosArray.length) % this._photosArray.length;
-    // Gestione fallback: se l'URL photo Google ritorna 403/errore, mostra messaggio "Nessuna foto".
-    img.onload = () => { img.style.display = 'block'; if (noPhotoMsg) noPhotoMsg.style.display = 'none'; };
-    img.onerror = () => { img.style.display = 'none'; if (noPhotoMsg) noPhotoMsg.style.display = 'block'; };
-    img.src = this._photosArray[this._currentPhotoIndex];
-  }
-
-  // Build 5-star inline HTML for a numeric rating (round to nearest whole star)
-  _buildReviewStars(value) {
-    const r = (typeof value === 'number' && isFinite(value)) ? Math.max(0, Math.min(5, Math.round(value))) : 0;
-    let html = '';
-    for (let i = 1; i <= 5; i++) {
-      html += `<span class="star ${i <= r ? 'on' : 'off'}">★</span>`;
-    }
-    return html;
-  }
+  // --- Metodi privati di comodo
 
   #navbarLogoutEvent(){
     // Navbar: Logout event
-    // Find the nav link whose text includes 'Logout' (avoid positional selectors)
     const links = Array.from(document.querySelectorAll('.navbar-nav .nav-link'));
     const logoutLink = links.find(a => (a.textContent || '').trim().toLowerCase().includes('logout')) || null;
     if (logoutLink) {
