@@ -184,7 +184,7 @@ export default class ProfileView {
 
     //metodo chiamato dal controller per disegnare il carosello dei ristoranti preferiti
     displayLikedRestaurant(restaurants) {
-    
+        
         const container = document.getElementById("Conteiner_del_carosello");
         if (!container) return;
 
@@ -197,73 +197,161 @@ export default class ProfileView {
             return;
         }
 
-        // Crea struttura base del carosello
-            const carouselId = "carouselLikedRestaurants";
-            const carousel = document.createElement("div");
-            carousel.id = carouselId;
-            carousel.className = "carousel slide carousel-fade";
-            carousel.setAttribute("data-bs-ride", "carousel");
+        const carouselId = "carouselLikedRestaurants";
+        const carouselWrapper = document.createElement("div");
+        carouselWrapper.className = "carousel-container";
 
-        // Crea il contenitore interno
+        // Carosello principale
+        const carousel = document.createElement("div");
+        carousel.id = carouselId;
+        carousel.className = "carousel slide";
+        carousel.setAttribute("data-bs-ride", "carousel");
+
+        // Indicatori
+        if (restaurants.length > 1) {
+            const indicators = document.createElement("div");
+            indicators.className = "carousel-indicators";
+            restaurants.forEach((_, idx) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.setAttribute("data-bs-target", `#${carouselId}`);  // richiesto
+                btn.setAttribute("data-bs-slide-to", String(idx));     // richiesto
+                if (idx === 0) {
+                    btn.classList.add("active");
+                    btn.setAttribute("aria-current", "true");
+                }
+                btn.setAttribute("aria-label", `Slide ${idx + 1}`);
+                indicators.appendChild(btn);
+            });
+            carousel.appendChild(indicators);
+        }
+
+        // Contenitore items
         const inner = document.createElement("div");
         inner.className = "carousel-inner";
 
-       // Genera ogni item (card del ristorante)
-       restaurants.forEach((rest, index) => {
+        // Genera items
+        const defaultImg = "images/images.png";
+        let renderedCount = 0;
+        restaurants.forEach((rest, index) => {
             const item = document.createElement("div");
-            item.className = `carousel-item ${index === 0 ? "active" : ""}`;
+            item.className = "carousel-item";
+            if (index === 0) item.classList.add("active");
 
-            // Card Bootstrap
-            const defaultImg = "images/images.png";
-            const card = `
-                <div class="card mx-auto shadow" style="width: 20rem; border-radius: 1rem; overflow: hidden;">
-                    <img src="${rest.photo_url || defaultImg}" class="card-img-top" alt="${rest.RestaurantName}">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">${rest.RestaurantName}</h5>
-                        <p class="card-text mb-2">${rest.address}</p>
-                        <p class="text-warning mb-2">
-                            ⭐ ${rest.rating ? rest.rating.toFixed(1) : "N/A"}
-                        </p>
-                        <p class="text-muted small mb-3">
-                            Prezzo: ${rest.price_level ?? "-"} | Tel: ${rest.phone_number ?? "N/D"}
-                        </p>
-                        <button class="btn btn-outline-danger unlike-btn" data-id="${rest.RestaurantID}">
-                            <i class="bi bi-hand-thumbs-down"></i> Rimuovi
-                        </button>
-                    </div>
-                </div>
-        `;
-        item.innerHTML = card;
-        inner.appendChild(item);
-       });
+        // Card come nodo DOM (meglio evitare innerHTML su elementi esterni per sicurezza)
+            const card = document.createElement("div");
+            card.className = "card mx-auto shadow";
+            card.style.width = "20rem";
+            card.style.borderRadius = "1rem";
+            card.style.overflow = "hidden";
 
-       // Aggiungi controlli (next/prev)
-       const prevBtn = `
-            <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Precedente</span>
-            </button>
-        `;
-        const nextBtn = `
-            <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Successivo</span>
-            </button>
-        `;
+            const img = document.createElement("img");
+            img.className = "card-img-top";
+            img.alt = rest.RestaurantName || "Ristorante";
+            img.src = rest.photo_url || defaultImg;
 
-        // Monta il carosello
+            const cardBody = document.createElement("div");
+            cardBody.className = "card-body text-center";
+
+            const h5 = document.createElement("h5");
+            h5.className = "card-title";
+            h5.textContent = rest.RestaurantName || "Senza nome";
+
+            const pAddr = document.createElement("p");
+            pAddr.className = "card-text mb-2";
+            pAddr.textContent = rest.address || "";
+
+            const pRating = document.createElement("p");
+            pRating.className = "text-warning mb-2";
+            pRating.textContent = `⭐ ${(typeof rest.rating === 'number') ? rest.rating.toFixed(1) : "N/A"}`;
+
+            const pMeta = document.createElement("p");
+            pMeta.className = "text-muted small mb-3";
+            pMeta.textContent = `Prezzo: ${rest.price_level ?? "-"} | Tel: ${rest.phone_number ?? "N/D"}`;
+
+            const btn = document.createElement("button");
+            btn.className = "btn btn-outline-danger unlike-btn";
+            btn.setAttribute("data-id", rest.RestaurantID);
+            btn.innerHTML = `<i class="bi bi-hand-thumbs-down"></i> Rimuovi`;
+
+            // monta la card
+            cardBody.appendChild(h5);
+            cardBody.appendChild(pAddr);
+            cardBody.appendChild(pRating);
+            cardBody.appendChild(pMeta);
+            cardBody.appendChild(btn);
+
+            card.appendChild(img);
+            card.appendChild(cardBody);
+
+            item.appendChild(card);
+            inner.appendChild(item);
+            renderedCount++;
+        });
+
         carousel.appendChild(inner);
-        carousel.insertAdjacentHTML("beforeend", prevBtn + nextBtn);
-         container.appendChild(carousel);
 
-        // Eventuali listener per rimuovere dai like
+        // Controlli Prev/Next (solo se >1)
+        if (restaurants.length > 1) {
+            const prevBtn = document.createElement("button");
+            prevBtn.className = "carousel-control-prev";
+            prevBtn.type = "button";
+            prevBtn.setAttribute("data-bs-target", `#${carouselId}`);
+            prevBtn.setAttribute("data-bs-slide", "prev");
+            prevBtn.innerHTML = `<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Precedente</span>`;
+
+            const nextBtn = document.createElement("button");
+            nextBtn.className = "carousel-control-next";
+            nextBtn.type = "button";
+            nextBtn.setAttribute("data-bs-target", `#${carouselId}`);
+            nextBtn.setAttribute("data-bs-slide", "next");
+            nextBtn.innerHTML = `<span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Successivo</span>`;
+
+            carousel.appendChild(prevBtn);
+            carousel.appendChild(nextBtn);
+        }
+
+        carouselWrapper.appendChild(carousel);
+        container.appendChild(carouselWrapper);
+
+        // Funzione per inizializzare (safe)
+    
+        this.initCarousel(carouselId);
+
+        // Listener sui bottoni unlike
         container.querySelectorAll(".unlike-btn").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 const restaurantId = e.currentTarget.getAttribute("data-id");
                 console.log("Ristorante da rimuovere:", restaurantId);
-                // puoi chiamare un metodo del controller tipo:
-                // this.controller.unlikeRestaurant(restaurantId);
+                // this.controller.unlikeRestaurant(restaurantId) oppure dispatch evento
             });
         });
-}
+    }
+
+    //metodo per inizializzare il carosello
+    initCarousel(carouselId) {
+        const carouselElem = document.getElementById(carouselId);
+        if (!carouselElem) {
+            console.warn('[CAROUSEL DEBUG] carouselElem non trovato al momento dell\'init.');
+            return false;
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
+            try {
+                // distruggi eventuale istanza precedente
+                if (carouselElem._bootstrapInstance) {
+                    try { carouselElem._bootstrapInstance.dispose(); } catch(e) {}
+                }
+                const inst = new bootstrap.Carousel(carouselElem, { interval: false, ride: false });
+                carouselElem._bootstrapInstance = inst; // riferimento per eventuale dispose futuro
+                console.log('[CAROUSEL DEBUG] Bootstrap.Carousel inizializzato (autoplay disattivato).');
+                return true;
+            } catch (e) {
+                console.warn('[CAROUSEL DEBUG] Errore inizializzazione Bootstrap.Carousel:', e);
+                return false;
+            }
+        }
+        return false;
+    }
 }
