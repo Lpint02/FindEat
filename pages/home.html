@@ -100,7 +100,23 @@
     </div>
   </div>
 
-    
+  <!-- Vista lista (default quando nessun ristorante è selezionato) -->
+  <div id="listView"></div>
+
+  <!-- Template per un elemento della lista (usato da HomeView.renderList) -->
+  <template id="list-item-template">
+    <div class="list-item">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div>
+          <h3 class="li-title" data-li-name style="margin:0;"></h3>
+          <div class="li-meta" data-li-meta></div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
+        </div>
+      </div>
+    </div>
+  </template>
 
   
 

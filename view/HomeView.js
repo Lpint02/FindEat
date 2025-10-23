@@ -110,50 +110,133 @@ export default class HomeView {
     btnReset.disabled = isDefault;
   }
 
-  // --- parte della lista --- 
+  // --- parte della lista ---
   
-  // La view rende la lista e gestisce i click utente, notificando il controller via callback
+  _buildMetaFragment(el) {
+    const frag = document.createDocumentFragment();
+    const distance = (typeof el.distanceKm === 'number' && isFinite(el.distanceKm))
+      ? `${el.distanceKm.toFixed(1)} km` : '';
+    const tags = el.tags || {};
+    const phoneRaw = (tags.phone || tags['contact:phone'] || '').trim();
+    const phone = phoneRaw ? `📞 ${phoneRaw}` : '';
+    const parts = [distance, phone].filter(Boolean);
+
+    if (el.isLiked) {
+      const heart = document.createElement('span');
+      heart.className = 'li-liked';
+      heart.setAttribute('aria-hidden', 'true');
+      heart.textContent = '♥';
+      frag.appendChild(heart);
+      // space after heart if there will be text
+      if (parts.length) frag.appendChild(document.createTextNode(' '));
+    }
+
+    if (parts.length) {
+      frag.appendChild(document.createTextNode(parts[0]));
+      for (let i = 1; i < parts.length; i++) frag.appendChild(document.createTextNode(' · ' + parts[i]));
+    }
+
+    return frag;
+  }
+
+  // Fallback: crea nodo list-item completamente via DOM (usato solo se template assente)
+  _createItemDom(el, idx) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'list-item';
+    wrapper.dataset.index = String(idx);
+
+    const row = document.createElement('div');
+    Object.assign(row.style, { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' });
+
+    const left = document.createElement('div');
+    const h3 = document.createElement('h3');
+    h3.className = 'li-title';
+    h3.style.margin = '0';
+    h3.textContent = el.name || el.tags?.name || 'Ristorante senza nome';
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'li-meta';
+    metaDiv.appendChild(this._buildMetaFragment(el));
+
+    left.appendChild(h3);
+    left.appendChild(metaDiv);
+
+    const right = document.createElement('div');
+    right.style.display = 'flex';
+    right.style.gap = '8px';
+    const btn = document.createElement('button');
+    btn.className = 'back-btn li-details';
+    btn.type = 'button';
+    btn.title = 'Vedi dettagli';
+    btn.setAttribute('aria-label', 'Vedi dettagli');
+    btn.textContent = 'Dettagli';
+    right.appendChild(btn);
+
+    row.appendChild(left);
+    row.appendChild(right);
+    wrapper.appendChild(row);
+
+    return wrapper;
+  }
+
+  // renderList semplificata: usa template quando presente, event delegation, nessun innerHTML
   renderList(items, onSelect) {
     const container = this.listContainer;
     if (!container) return;
-    container.innerHTML = '';
+
+    // rimuovi handler precedente (se presente)
+    if (container._listHandler) container.removeEventListener('click', container._listHandler);
+
+    // bind delegato: trova item o button clicked e richiama onSelect con l'elemento corrispondente
+    const handler = (e) => {
+      const btn = e.target.closest('.li-details');
+      const itemNode = e.target.closest('.list-item');
+      if (!itemNode) return;
+      const idx = itemNode.dataset.index ? Number(itemNode.dataset.index) : null;
+      const model = Array.isArray(container._items) && idx != null ? container._items[idx] : null;
+      if (btn) { e.stopPropagation(); onSelect && onSelect(model); }
+      else { onSelect && onSelect(model); }
+    };
+    container._listHandler = handler;
+    container.addEventListener('click', handler);
+
+    // svuota container
+    while (container.firstChild) container.removeChild(container.firstChild);
+
     if (!items || !items.length) {
-      container.innerHTML = '<div>Nessun ristorante trovato nell\'area selezionata.</div>';
+      const msg = document.createElement('div');
+      msg.textContent = "Nessun ristorante trovato nell'area selezionata.";
+      container.appendChild(msg);
+      container._items = [];
       return;
     }
-    for (const el of items) {
-      // el è Restaurant
-      const name = el.name || el.tags?.name || 'Ristorante senza nome';
-      const distance = (typeof el.distanceKm === 'number' && isFinite(el.distanceKm)) ? `${el.distanceKm.toFixed(1)} km` : '';
-      const tags = el.tags || {};
-      const phoneRaw = (tags.phone || tags['contact:phone'] || '').trim();
-      const phone = phoneRaw ? `📞 ${phoneRaw}` : '';
-      const metaParts = [distance, phone || null].filter(Boolean);
-      const metaLine = metaParts.join(' · ');
-      const div = document.createElement('div');
-      div.className = 'list-item';
-      const likedBadge = el.isLiked ? `<span class="li-liked" aria-hidden="true">♥</span>` : '';
-      // Put the heart next to the distance in the meta line (distance is usually the first meta part)
-      const metaWithLike = metaParts.length ?
-        [ (metaParts[0] ? `${likedBadge} ${metaParts[0]}` : likedBadge), ...metaParts.slice(1) ] :
-        (likedBadge ? [likedBadge] : []);
-      const metaLineWithLike = metaWithLike.join(' · ');
 
-      div.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-          <div>
-            <h3 class="li-title" style="margin:0;">${name}</h3>
-            <div class="li-meta">${metaLineWithLike}</div>
-          </div>
-          <div style="display:flex; gap:8px;">
-            <button class="back-btn li-details" title="Vedi dettagli" aria-label="Vedi dettagli">Dettagli</button>
-          </div>
-        </div>
-      `;
-      div.querySelector('.li-details').addEventListener('click', (e) => { e.stopPropagation(); onSelect && onSelect(el); });
-      div.addEventListener('click', () => onSelect && onSelect(el));
-      container.appendChild(div);
-    }
+    container._items = items; // conserviamo l'array per la delega
+    const template = document.getElementById('list-item-template');
+    const frag = document.createDocumentFragment();
+
+    items.forEach((el, i) => {
+      let node;
+      if (template) {
+        const clone = document.importNode(template.content, true);
+        node = clone.querySelector('.list-item') ?? clone.firstElementChild;
+        if (!node) { node = this._createItemDom(el, i); }
+        else {
+          node.dataset.index = String(i);
+          const nameEl = node.querySelector('[data-li-name]');
+          if (nameEl) nameEl.textContent = el.name || el.tags?.name || 'Ristorante senza nome';
+          const metaEl = node.querySelector('[data-li-meta]');
+          if (metaEl) {
+            while (metaEl.firstChild) metaEl.removeChild(metaEl.firstChild);
+            metaEl.appendChild(this._buildMetaFragment(el));
+          }
+        }
+      } else {
+        node = this._createItemDom(el, i);
+      }
+      frag.appendChild(node);
+    });
+
+    container.appendChild(frag);
   }
 
   // La view torna alla lista
@@ -196,7 +279,6 @@ export default class HomeView {
 
   #navbarLogoutEvent(){
     // Navbar: Logout event
-    // Find the nav link whose text includes 'Logout' (avoid positional selectors)
     const links = Array.from(document.querySelectorAll('.navbar-nav .nav-link'));
     const logoutLink = links.find(a => (a.textContent || '').trim().toLowerCase().includes('logout')) || null;
     if (logoutLink) {
