@@ -166,192 +166,95 @@ export default class ProfileView {
     }
 
     //metodo chiamato dal controller per gestire la mancanza di ristoranti a cui si è fatto like
-    noLikedRestaurant(){
-                const Contenitore_Carosello = document.getElementById("Conteiner_del_carosello");
-                const section = document.createElement('section');
-                section.classList.add('empty-section');
-                const div = document.createElement('div');
-                div.classList.add('empty-icon');
-                const icon = document.createElement('i');
-                icon.className = 'fa-solid fa-utensils';
-                const p = document.createElement('p');
-                p.textContent = 'Nessun ristorante piaciuto';
-                div.appendChild(icon);
-                div.appendChild(p);
-                section.appendChild(div);
-                Contenitore_Carosello.appendChild(section);
+    noLikedRestaurant() {
+        const container = document.getElementById('Conteiner_del_carosello');
+        container.innerHTML = ''; // Svuota il contenitore
+
+        const section = document.createElement('section');
+        section.classList.add('empty-section');
+
+        const div = document.createElement('div');
+        div.classList.add('empty-icon');
+
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-utensils';
+
+        const p = document.createElement('p');
+        p.textContent = 'Nessun ristorante piaciuto';
+
+        div.appendChild(icon);
+        div.appendChild(p);
+        section.appendChild(div);
+
+        container.appendChild(section);
     }
 
     //metodo chiamato dal controller per disegnare il carosello dei ristoranti preferiti
     displayLikedRestaurant(restaurants) {
-        
-        const container = document.getElementById("Conteiner_del_carosello");
-        if (!container) return;
+    const container = document.getElementById('Conteiner_del_carosello');
+    const carouselInner = container.querySelector('.carousel-inner');
+    const template = document.getElementById('carousel-item-template');
 
-        // Svuota il contenitore (in caso di refresh)
-        container.innerHTML = "";
+    // Svuota il contenitore
+    carouselInner.innerHTML = '';
 
-        // Se non ci sono ristoranti, mostra messaggio
-        if (!restaurants || restaurants.length === 0) {
-            this.noLikedRestaurant();
-            return;
-        }
-
-        const carouselId = "carouselLikedRestaurants";
-        const carouselWrapper = document.createElement("div");
-        carouselWrapper.className = "carousel-container";
-
-        // Carosello principale
-        const carousel = document.createElement("div");
-        carousel.id = carouselId;
-        carousel.className = "carousel slide";
-        carousel.setAttribute("data-bs-ride", "carousel");
-
-        // Indicatori
-        if (restaurants.length > 1) {
-            const indicators = document.createElement("div");
-            indicators.className = "carousel-indicators";
-            restaurants.forEach((_, idx) => {
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.setAttribute("data-bs-target", `#${carouselId}`);  // richiesto
-                btn.setAttribute("data-bs-slide-to", String(idx));     // richiesto
-                if (idx === 0) {
-                    btn.classList.add("active");
-                    btn.setAttribute("aria-current", "true");
-                }
-                btn.setAttribute("aria-label", `Slide ${idx + 1}`);
-                indicators.appendChild(btn);
-            });
-            carousel.appendChild(indicators);
-        }
-
-        // Contenitore items
-        const inner = document.createElement("div");
-        inner.className = "carousel-inner";
-
-        // Genera items
-        const defaultImg = "images/images.png";
-        let renderedCount = 0;
-        restaurants.forEach((rest, index) => {
-            const item = document.createElement("div");
-            item.className = "carousel-item";
-            if (index === 0) item.classList.add("active");
-
-        // Card come nodo DOM (meglio evitare innerHTML su elementi esterni per sicurezza)
-            const card = document.createElement("div");
-            card.className = "card mx-auto shadow";
-            card.style.width = "20rem";
-            card.style.borderRadius = "1rem";
-            card.style.overflow = "hidden";
-
-            const img = document.createElement("img");
-            img.className = "card-img-top";
-            img.alt = rest.RestaurantName || "Ristorante";
-            img.src = rest.photo_url || defaultImg;
-
-            const cardBody = document.createElement("div");
-            cardBody.className = "card-body text-center";
-
-            const h5 = document.createElement("h5");
-            h5.className = "card-title";
-            h5.textContent = rest.RestaurantName || "Senza nome";
-
-            const pAddr = document.createElement("p");
-            pAddr.className = "card-text mb-2";
-            pAddr.textContent = rest.address || "";
-
-            const pRating = document.createElement("p");
-            pRating.className = "text-warning mb-2";
-            pRating.textContent = `⭐ ${(typeof rest.rating === 'number') ? rest.rating.toFixed(1) : "N/A"}`;
-
-            const pMeta = document.createElement("p");
-            pMeta.className = "text-muted small mb-3";
-            pMeta.textContent = `Prezzo: ${rest.price_level ?? "-"} | Tel: ${rest.phone_number ?? "N/D"}`;
-
-            const btn = document.createElement("button");
-            btn.className = "btn btn-outline-danger unlike-btn";
-            btn.setAttribute("data-id", rest.RestaurantID);
-            btn.innerHTML = `<i class="bi bi-hand-thumbs-down"></i> Rimuovi`;
-
-            // monta la card
-            cardBody.appendChild(h5);
-            cardBody.appendChild(pAddr);
-            cardBody.appendChild(pRating);
-            cardBody.appendChild(pMeta);
-            cardBody.appendChild(btn);
-
-            card.appendChild(img);
-            card.appendChild(cardBody);
-
-            item.appendChild(card);
-            inner.appendChild(item);
-            renderedCount++;
-        });
-
-        carousel.appendChild(inner);
-
-        // Controlli Prev/Next (solo se >1)
-        if (restaurants.length > 1) {
-            const prevBtn = document.createElement("button");
-            prevBtn.className = "carousel-control-prev";
-            prevBtn.type = "button";
-            prevBtn.setAttribute("data-bs-target", `#${carouselId}`);
-            prevBtn.setAttribute("data-bs-slide", "prev");
-            prevBtn.innerHTML = `<span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Precedente</span>`;
-
-            const nextBtn = document.createElement("button");
-            nextBtn.className = "carousel-control-next";
-            nextBtn.type = "button";
-            nextBtn.setAttribute("data-bs-target", `#${carouselId}`);
-            nextBtn.setAttribute("data-bs-slide", "next");
-            nextBtn.innerHTML = `<span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Successivo</span>`;
-
-            carousel.appendChild(prevBtn);
-            carousel.appendChild(nextBtn);
-        }
-
-        carouselWrapper.appendChild(carousel);
-        container.appendChild(carouselWrapper);
-
-        // Funzione per inizializzare (safe)
-    
-        this.initCarousel(carouselId);
-
-        // Listener sui bottoni unlike
-        container.querySelectorAll(".unlike-btn").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                const restaurantId = e.currentTarget.getAttribute("data-id");
-                console.log("Ristorante da rimuovere:", restaurantId);
-                // this.controller.unlikeRestaurant(restaurantId) oppure dispatch evento
-            });
-        });
+    if (!restaurants || restaurants.length === 0) {
+        this.noLikedRestaurant();
+        return;
     }
+
+    restaurants.forEach((rest, index) => {
+        // Clona il template
+        const carouselItem = document.importNode(template.content, true);
+
+        // Popola i dati dinamici
+        carouselItem.querySelector('[data-carousel="photo-url"]').src = rest.photo_url || 'images/images.png';
+        carouselItem.querySelector('[data-carousel="restaurant-name"]').textContent = rest.RestaurantName;
+        carouselItem.querySelector('[data-carousel="address"]').textContent = rest.address;
+        carouselItem.querySelector('[data-carousel="rating"]').textContent = `⭐ ${rest.rating ? rest.rating.toFixed(1) : 'N/A'}`;
+        carouselItem.querySelector('[data-carousel="details"]').textContent = `Prezzo: ${rest.price_level ?? '-'} | Tel: ${rest.phone_number ?? 'N/D'}`;
+        carouselItem.querySelector('.unlike-btn').setAttribute('data-id', rest.RestaurantID);
+
+        // Aggiungi evento per rimuovere il ristorante
+        carouselItem.querySelector('.unlike-btn').addEventListener('click', () => {
+            console.log('Ristorante da rimuovere:', rest.RestaurantID);
+            this.controller.unlikeRestaurant(rest.RestaurantID);
+        });
+
+        // Imposta l'elemento attivo
+        if (index === 0) {
+            carouselItem.querySelector('.carousel-item').classList.add('active');
+        }
+
+        carouselInner.appendChild(carouselItem);
+    });
+
+    // Inizializza il carosello
+    this.initCarousel('Conteiner_del_carosello');
+}
 
     //metodo per inizializzare il carosello
     initCarousel(carouselId) {
-        const carouselElem = document.getElementById(carouselId);
-        if (!carouselElem) {
-            console.warn('[CAROUSEL DEBUG] carouselElem non trovato al momento dell\'init.');
-            return false;
-        }
-        if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
-            try {
-                // distruggi eventuale istanza precedente
-                if (carouselElem._bootstrapInstance) {
-                    try { carouselElem._bootstrapInstance.dispose(); } catch(e) {}
-                }
-                const inst = new bootstrap.Carousel(carouselElem, { interval: false, ride: false });
-                carouselElem._bootstrapInstance = inst; // riferimento per eventuale dispose futuro
-                console.log('[CAROUSEL DEBUG] Bootstrap.Carousel inizializzato (autoplay disattivato).');
-                return true;
-            } catch (e) {
-                console.warn('[CAROUSEL DEBUG] Errore inizializzazione Bootstrap.Carousel:', e);
-                return false;
-            }
-        }
+    const carouselElem = document.getElementById(carouselId);
+    if (!carouselElem) {
+        console.warn('[CAROUSEL DEBUG] carouselElem non trovato al momento dell\'init.');
         return false;
     }
+    if (typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
+        try {
+            // Distruggi eventuale istanza precedente
+            if (carouselElem._bootstrapInstance) {
+                try { carouselElem._bootstrapInstance.dispose(); } catch (e) {}
+            }
+            const inst = new bootstrap.Carousel(carouselElem, { interval: false, ride: false });
+            carouselElem._bootstrapInstance = inst; // Riferimento per eventuale dispose futuro
+            console.log('[CAROUSEL DEBUG] Bootstrap.Carousel inizializzato (autoplay disattivato).');
+            return true;
+        } catch (e) {
+            console.warn('[CAROUSEL DEBUG] Errore inizializzazione Bootstrap.Carousel:', e);
+            return false;
+        }
+    }
+    return false;
+}
 }
