@@ -421,6 +421,16 @@ export default class DetailsView {
     img.src = this._photosArray[this._currentPhotoIndex];
   }
 
+    // Public API: navigate photos from controller
+    prevPhoto() {
+    if (!this._photosArray || this._photosArray.length === 0) return;
+    this._showPhoto(this._currentPhotoIndex - 1);
+    }
+
+    nextPhoto() {
+    if (!this._photosArray || this._photosArray.length === 0) return;
+    this._showPhoto(this._currentPhotoIndex + 1);
+    }
   // Helpers per stelle/orari/foto
   _renderStars(value, containerId = 'stars') {
     const container = document.getElementById(containerId);

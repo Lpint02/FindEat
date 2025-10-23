@@ -371,7 +371,7 @@ export default class HomeController {
         delivery: place?.delivery || false,
         dine_in: place?.dine_in || false,
         takeout: place?.takeout || false,
-        wheelchair_accessible_entrance: place?.wheelchair_accessible_entrance || false,
+        wheelchair_accessible_entrance: place?.wheelchair_accessibile_entrance || false,
         photos,
         location: { lat, lng: lon },
         savedAt: new Date().toISOString()
@@ -400,17 +400,31 @@ export default class HomeController {
 
   // Photo navigation callbacks used by the view bindings (keyboard/prev/next)
   onPrevPhoto() {
-    if (this.view && typeof this.view._showPhoto === 'function') {
-      const idx = (this.view._currentPhotoIndex || 0) - 1;
-      this.view._showPhoto(idx);
-    }
+    // Prefer to instruct DetailsView to navigate
+    try {
+      if (this.view?.detailsView && typeof this.view.detailsView.prevPhoto === 'function') {
+        this.view.detailsView.prevPhoto();
+        return;
+      }
+      // fallback (compat): if view exposes _showPhoto directly
+      if (this.view && typeof this.view._showPhoto === 'function') {
+        const idx = (this.view._currentPhotoIndex || 0) - 1;
+        this.view._showPhoto(idx);
+      }
+    } catch (e) { console.warn('onPrevPhoto fallback failed', e); }
   }
 
   onNextPhoto() {
-    if (this.view && typeof this.view._showPhoto === 'function') {
-      const idx = (this.view._currentPhotoIndex || 0) + 1;
-      this.view._showPhoto(idx);
-    }
+    try {
+      if (this.view?.detailsView && typeof this.view.detailsView.nextPhoto === 'function') {
+        this.view.detailsView.nextPhoto();
+        return;
+      }
+      if (this.view && typeof this.view._showPhoto === 'function') {
+        const idx = (this.view._currentPhotoIndex || 0) + 1;
+        this.view._showPhoto(idx);
+      }
+    } catch (e) { console.warn('onNextPhoto fallback failed', e); }
   }
 
   destroy() {
