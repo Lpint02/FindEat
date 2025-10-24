@@ -31,7 +31,7 @@ export default class Router
     const route = this.routes[path];
     
     if (!route) {
-      console.log("ROTA NON TROVATA");
+      console.log("ROTTA NON TROVATA");
       await this.#manageWrongRoute(path);
       return;
     }

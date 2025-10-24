@@ -102,7 +102,7 @@ export default class HomeController {
         try { await this._refreshReviewedSet(); } catch(e) { console.warn('refreshReviewedSet failed', e); }
       } catch(e) { console.warn('Unable to init Firestore service early', e); }
 
-      //Carica i ristoranti (chiamata di rete) e renderizza l'UI
+      //Carica i ristoranti (chiamata Google Places) e renderizza l'UI
       const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
       // Annotiamo ogni ristorante con:
       // - docId (chiave nel DB)
@@ -125,7 +125,7 @@ export default class HomeController {
       // Render mappa e lista (la View gestisce binding/eventi); applichiamo i filtri liked/reviewed se richiesti
       try {
         this._placesService = new GooglePlacesService();
-        // Apply liked/reviewed filters if active
+        // Applica i filtri liked/reviewed se attivi
         let renderList = restaurants;
         if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
           if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
@@ -241,7 +241,7 @@ export default class HomeController {
   }
 
   async _refreshReviewedSet() {
-    // Popola l'insieme di ristoranti recensiti dall'utente corrente interrogando Reviews
+    // Popola l'insieme di ristoranti recensiti dall'utente corrente interrogando Reviews (campo RestaurantID)
     try {
       const user = auth.currentUser;
       this._reviewedRestaurantIds = new Set();
@@ -249,7 +249,7 @@ export default class HomeController {
       if (!this._firebase) this._firebase = new FirestoreService();
       const reviews = await this._firebase.getUserReviews(user.uid);
       for (const rv of (reviews || [])) {
-        const rid = rv.RestaurantID || rv.restaurantId;
+        const rid = rv.RestaurantID;
         if (rid) this._reviewedRestaurantIds.add(rid);
       }
     } catch (e) {
@@ -459,19 +459,19 @@ export default class HomeController {
     // Torna dalla vista dettagli alla lista e ri-applica i filtri correnti
     this.view.clearMapSelection();
     this.view.showList();
-    // Re-render the list applying current filters so unliked items disappear when 'Solo liked' is active
+    // Ri-renderzza la lista applicando i filtri correnti in modo che gli elementi non più liked spariscano se 'Solo liked' è attivo
     try { this._reRenderListForCurrentFilters(); } catch (e) { console.warn('re-render after back failed', e); }
   }
 
-  // Photo navigation callbacks used by the view bindings (keyboard/prev/next)
+  // Funzione di navigazione foto nel pannello dettagli
   onPrevPhoto() {
-    // Prefer to instruct DetailsView to navigate
+    // Naviga alla foto precedente nel dettaglio (se supportato dalla view)
     try {
       if (this.view?.detailsView && typeof this.view.detailsView.prevPhoto === 'function') {
         this.view.detailsView.prevPhoto();
         return;
       }
-      // fallback (compat): if view exposes _showPhoto directly
+      // fallback : se la view espone _showPhoto direttamente
       if (this.view && typeof this.view._showPhoto === 'function') {
         const idx = (this.view._currentPhotoIndex || 0) - 1;
         this.view._showPhoto(idx);
@@ -496,7 +496,7 @@ export default class HomeController {
     // Ri-renderizza la lista a sinistra senza toccare la mappa, usando i ristoranti già caricati e gli insiemi liked/reviewed
     try {
       const restaurants = Array.isArray(this._restaurants) ? this._restaurants : [];
-      // annotate
+      // annotiamo ogni ristorante con isLiked / isReviewed
       for (const r of restaurants) {
         try {
           const docId = this._computeDocIdFromRestaurant(r);
@@ -505,14 +505,14 @@ export default class HomeController {
           r.isReviewed = this._reviewedRestaurantIds && this._reviewedRestaurantIds.has ? this._reviewedRestaurantIds.has(docId) : false;
         } catch(e) { r.isLiked = false; r.isReviewed = false; }
       }
-      // filter
+      // filtriamo in base a liked/reviewed attivi
       let renderList = restaurants;
       if (this._filters?.liked) renderList = renderList.filter(r => r.isLiked);
       if (this._filters?.reviewed) renderList = renderList.filter(r => r.isReviewed);
-      // render only the list (keep map as-is)
+      // mostra la lista filtrata nella view senza toccare la mappa
       this.view.renderList(renderList, (el) => this.onListSelect(el));
     } catch(e) {
-      console.warn('Failed to re-render list with current filters', e);
+      console.warn('Fallimento nel re-rendering della lista con i filtri attuali', e);
     }
   }
 
@@ -536,12 +536,13 @@ export default class HomeController {
   isLoggedIn() {
     return !!auth.currentUser;
   }
+
   getCurrentUserId() {
     return auth.currentUser ? auth.currentUser.uid : null;
   }
 
   /**
-   * Aggiunge o aggiorna (upsert) la recensione dell'utente corrente per un dato ristorante.
+   * Aggiunge o aggiorna la recensione dell'utente corrente per un dato ristorante.
    * - Usa il model Review per normalizzare i dati
    * - Scrive su Firestore duplicando i campi ID (AuthorID/authorId, RestaurantID/restaurantId) per compatibilità
    * - Se esiste già una recensione dell'utente per quel ristorante, fa un update; altrimenti crea un nuovo documento
@@ -566,15 +567,13 @@ export default class HomeController {
           translated: false
         });
 
-        // Upsert: if user already reviewed this restaurant, update that review; else create a new one
+        // Controlla se l'utente ha già una recensione per questo ristorante
         const myReviews = await this._firebase.getUserReviews(user.uid);
-        const existing = (myReviews || []).find(rv => (rv.RestaurantID || rv.restaurantId) === restaurantId);
-        // Converte dal model a payload compatibile con Firestore (duplicando i campi ID)
+        const existing = (myReviews || []).find(rv => rv.RestaurantID === restaurantId);
+        // Converte dal model a payload con schema richiesto
         const payload = {
           AuthorID: reviewModel.authorID,
-          authorId: reviewModel.authorID,
           RestaurantID: reviewModel.restaurantID,
-          restaurantId: reviewModel.restaurantID,
           RestaurantName: reviewModel.restaurantName,
           author_name: reviewModel.author_name,
           language: reviewModel.language,
@@ -586,7 +585,8 @@ export default class HomeController {
         };
         if (existing && existing.firestoreId) {
           await this._firebase.saveById('Reviews', existing.firestoreId, payload);
-          try { await this._firebase.saveById('reviews', existing.firestoreId, payload); } catch {}
+          // garantiamo che il campo firestoreId sia presente e coerente con l'ID del documento
+          try { await this._firebase.updateFieldById('Reviews', existing.firestoreId, 'firestoreId', existing.firestoreId); } catch {}
           this._reviewedRestaurantIds.add(restaurantId);
           return { ok: true, id: existing.firestoreId, data: { ...existing, ...payload } };
         } else {
@@ -611,9 +611,9 @@ export default class HomeController {
         // Mappa a Review model per la View (mantiene anche firestoreId come proprietà addizionale)
         return (rows || []).map(r => {
           const model = new Review({
-            authorID: r.AuthorID || r.authorId || '',
-            restaurantID: r.RestaurantID || r.restaurantId || restaurantId,
-            restaurantName: r.RestaurantName || r.restaurantName || '',
+            authorID: r.AuthorID || '',
+            restaurantID: r.RestaurantID || restaurantId,
+            restaurantName: r.RestaurantName || '',
             author_name: r.author_name || '',
             language: r.language || 'it',
             original_language: r.original_language || 'it',

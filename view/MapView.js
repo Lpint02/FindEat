@@ -3,7 +3,7 @@
 
 export default class MapView {
     constructor() {
-        // Stato mappa/ui
+        // Stato della mappa e dell'interfaccia utente
         this.map = null;
         this.userMarker = null;
         this.markers = new Map(); // id => marker (rosso o blu)
@@ -34,16 +34,16 @@ export default class MapView {
         }) : null;
     }
 
-    // Inizializza/aggiorna la mappa e il cerchio di raggio
+    // Inizializza o aggiorna la mappa e il cerchio di raggio
     initMap(center, radius) {
         const container = document.getElementById('map');
         if (!container || !window.L) return;
-        // Reuse cached map if present, otherwise ensure container is clean for a fresh init
+        // Riutilizza la mappa memorizzata se presente, altrimenti assicura che il container sia pulito per una nuova inizializzazione
         if (!this.map) {
             if (container.__leafletMapRef) {
                 this.map = container.__leafletMapRef;
             } else {
-                // Fix sporadic 'Map container is already initialized' by resetting internal id
+                // Risolve l'errore "Map container is already initialized" resettando l'id interno
                 if (container._leaflet_id) {
                     try { container._leaflet_id = null; } catch(e) { /* ignore */ }
                 }
@@ -51,7 +51,7 @@ export default class MapView {
                 container.__leafletMapRef = this.map;
             }
             if (this.map.zoomControl?.setPosition) this.map.zoomControl.setPosition('topright');
-            // Add tiles only once
+            // Aggiungi i livelli delle tiles solo una volta
             if (!this._tilesLayerAdded) {
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(this.map);
                 this._tilesLayerAdded = true;
@@ -59,12 +59,12 @@ export default class MapView {
         } else {
             this.map.setView(center, this.map.getZoom() || 15);
         }
-        // Ensure single radius circle shared across instances
+        // Assicura che il cerchio di raggio sia unico e condiviso tra istanze
         if (!this.radiusCircle) {
             if (container.__radiusCircleRef) {
                 this.radiusCircle = container.__radiusCircleRef;
             } else {
-                // Try to find an existing circle on the map (from previous view instances)
+                // Cerca di trovare un cerchio esistente sulla mappa (da istanze di vista precedenti)
                 let found = null;
                 this.map.eachLayer(l => { if (!found && l instanceof L.Circle) found = l; });
                 if (found) {
@@ -76,32 +76,33 @@ export default class MapView {
                 }
             }
         }
-        // Update circle position and radius
+        // Aggiorna la posizione e il raggio del cerchio
         if (this.radiusCircle) {
             this.radiusCircle.setLatLng(center);
             this.radiusCircle.setRadius(radius);
         }
-        // Remove any duplicate circles beyond the primary one
+        // Rimuovi eventuali cerchi duplicati oltre il principale
         const keep = this.radiusCircle;
         const toRemove = [];
         this.map.eachLayer(l => { if (l instanceof L.Circle && l !== keep) toRemove.push(l); });
         toRemove.forEach(l => { try { l.remove(); } catch(e) { /* ignore */ } });
     }
 
-    // Marker posizione utente
+    // Imposta il marker della posizione dell'utente
     setUserMarker(lat, lon) {
         if (!window.L || !this.map) return;
         if (!this.userMarker) this.userMarker = L.marker([lat, lon], { icon: this.selectedIcon, interactive: false }).addTo(this.map);
         else this.userMarker.setLatLng([lat, lon]);
     }
 
+    // Aggiorna la posizione del marker utente
     updateUserPosition(lat, lon) {
         if (this.userMarker) this.userMarker.setLatLng([lat, lon]);
     }
 
-    // Render dei marker ristoranti
+    // Renderizza i marker dei ristoranti
     renderMapRestaurants(elements, onSelect) {
-        // Rimuovi marker esistenti
+        // Rimuovi i marker esistenti
         for (const m of this.markers.values()) { try { m.remove(); } catch(e) {} }
         this.markers.clear();
 
@@ -135,6 +136,7 @@ export default class MapView {
         });
     }
 
+    // Gestisce la selezione di un marker
     _onSelectMarker({ data, fallbackName, el, location }, externalSelect) {
         if (this.selected?.el?.id && this.selected.el.id !== el.id) {
             const prevMarker = this.markers.get(this.selected.el.id);
@@ -149,6 +151,7 @@ export default class MapView {
         if (externalSelect) externalSelect({ data, fallbackName, el, location });
     }
 
+    // Crea un marker per un ristorante
     _createRestaurantMarker(map, el, onSelect) {
         if (!map || !window.L) return;
         const lat = el.lat;
@@ -165,6 +168,7 @@ export default class MapView {
         return marker;
     }
 
+    // Costruisce l'HTML del popup per un marker
     _buildPopupHtml(tags = {}) {
         const name = tags.name || 'Ristorante senza nome';
         const cuisine = tags.cuisine || 'Tipo sconosciuto';
@@ -173,11 +177,13 @@ export default class MapView {
         return `<b>${name}</b><br>🍽️ Cucina: ${cuisine}<br>📞 Telefono: ${phone}<br>🌐 ${website}`;
     }
 
+    // Seleziona un marker sulla mappa tramite ID
     selectOnMapById(id) {
         const m = this.markers.get(id);
         if (m) m.fire('click');
     }
 
+    // Cancella la selezione sulla mappa
     clearMapSelection() {
         if (this.selected?.el?.id) {
             const prevMarker = this.markers.get(this.selected.el.id);

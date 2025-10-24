@@ -29,4 +29,20 @@ export default class Review {
         this.rating = rating;
         this.time = new Date().toISOString(); // aggiorna timestamp
     }
+
+    // Converte il model nel payload Firestore richiesto dalla collection "Reviews"
+    toFirestorePayload() {
+        return {
+            AuthorID: this.authorID,
+            RestaurantID: this.restaurantID,
+            RestaurantName: this.restaurantName,
+            author_name: this.author_name,
+            language: this.language,
+            original_language: this.original_language,
+            rating: this.rating,
+            text: this.text,
+            time: this.time,
+            translated: !!this.translated
+        };
+    }
 }
