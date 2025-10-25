@@ -233,4 +233,18 @@ export default class ProfiloController {
             console.warn("Errore durante la rimozione del like");
         }
     }
+
+    // metodo per eliminare le recensioni dell'utente
+    async deleteReview(review){
+        let result = await this.firestore.deleteById('Reviews', review.firestoreId);
+        if(result)
+        {
+            await this.loadUserReviews();
+            console.log("Recensione eliminata con successo");
+        }
+        else
+        {
+            console.error("Errore eliminando la recensione");
+        }
+    }
 }
