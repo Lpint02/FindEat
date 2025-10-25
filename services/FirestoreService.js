@@ -222,4 +222,41 @@ export default class FirestoreService {
       return [];
     }
   }
+
+   // metodo per eliminare un like di un ristorante
+  async removeLikedRestaurant(userID, restaurantID) {
+    console.log(" Rimuovo like per ristorante:", restaurantID, "dall'utente:", userID);
+
+    const db = getDb();
+    const userRef = doc(db, "User", userID);
+    const restaurantRef = doc(db, "Restaurants", restaurantID);
+
+    try {
+      // Aggiorna l'utente
+      await updateDoc(userRef, {
+        likedRestaurants: arrayRemove(restaurantID)
+      });
+
+      // Aggiorna il ristorante solo se esiste
+      try {
+        await updateDoc(restaurantRef, {
+          liked: arrayRemove(userID)
+        });
+      } catch (err) {
+        if (err.code === 'not-found' || (err.message && err.message.includes('No document to update'))) {
+          // Documento ristorante non esiste, ignora
+          console.warn(`Documento ristorante ${restaurantID} non trovato, skip update.`);
+        } else {
+          throw err;
+        }
+      }
+
+      console.log(`Rimosso like tra utente ${userID} e ristorante ${restaurantID}`);
+      return true;
+
+    } catch (err) {
+      console.error("Errore durante la rimozione del like:", err);
+      return false;
+    }
+  }
 }
