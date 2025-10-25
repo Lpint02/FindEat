@@ -1,28 +1,35 @@
 export default class DetailsView {
     constructor(controller = null) {
+        // Inizializza il controller e lo stato interno della vista
         this.controller = controller;
-        this._photosArray = [];
-        this._currentPhotoIndex = 0;
-        this._detailBindingsInitialized = false;
-        this._savedReviewsHtml = null;
-        this._userReviews = [];
+        this._photosArray = []; // Array di foto del ristorante
+        this._currentPhotoIndex = 0; // Indice della foto attualmente visualizzata
+        this._detailBindingsInitialized = false; // Indica se i binding dei dettagli sono stati inizializzati
+        this._savedReviewsHtml = null; // HTML salvato delle recensioni 
+        this._userReviews = []; // Array di recensioni dell'utente
     }
+
+    // Imposta il controller della vista
     setController(ctrl) { this.controller = ctrl; }
-    // La view mostra i dettagli
+
+    // La view mostra i dettagli del ristorante selezionato
     showDetails(data, fallbackName, el) {
     const detailView = document.getElementById('detailView');
     const listView = document.getElementById('listView');
     const filtersBar = document.getElementById('filtersBar');
 
+    // Nasconde la lista e mostra la vista dettagli
     if (!detailView || !listView) return;
     listView.classList.add('hidden');
     detailView.classList.remove('hidden');
     if (filtersBar) filtersBar.classList.add('hidden');
     document.body.classList.add('detail-mode');
+
+    // Nasconde eventuali messaggi di stato 
     const statusDiv = document.getElementById('status');
     if (statusDiv) statusDiv.style.display = 'none';
 
-    // Reset any previous detail content to avoid stacking between restaurants
+    // Resetta i dettagli precedenti per evitare sovrapposizioni tra ristoranti
     this._savedReviewsHtml = null;
     this._userReviews = [];
     const detailsEl = document.getElementById('dpDetails');
@@ -30,6 +37,7 @@ export default class DetailsView {
       while (detailsEl.firstChild) detailsEl.removeChild(detailsEl.firstChild);
     }
 
+    // Imposta il titolo con il nome del ristorante e lo stato (Aperto/Chiuso)
     const titleEl = document.getElementById('dpTitle');
     const baseName = data?.name || fallbackName || (el?.name ?? el?.tags?.name ?? 'Dettagli ristorante');
     let openBadge = '';
@@ -39,22 +47,21 @@ export default class DetailsView {
     }
     titleEl.innerHTML = `${baseName} ${openBadge}`;
 
+    // Gestione foto del ristorante
     const img = document.getElementById('dpCurrentPhoto');
     const noPhotoMsg = document.getElementById('dpNoPhotoMsg');
     this._photosArray = data?.photos || [];
-    if (this._photosArray.length) {
+    if (this._photosArray.length) { // Se ci sono foto disponibili
       img.style.display = 'block';
       noPhotoMsg.style.display = 'none';
-      this._showPhoto(0);
+      this._showPhoto(0); // mostra la prima foto
     } else {
       img.style.display = 'none';
       noPhotoMsg.style.display = 'block';
       img.src = '';
     }
-
-  // detailsEl already cleared above
     
-    // compact data extraction
+    // Estrae e visualizza informazioni compatte (es. distanza, prezzo, cucina)
     const tags = el?.tags || {};
     const g = data || {};
     const distanceKm = (typeof el?.distanceKm === 'number') ? `${el.distanceKm.toFixed(1)} km` : null;
@@ -65,37 +72,51 @@ export default class DetailsView {
     const website = g.website || tags.website || null;
     const cuisine = tags.cuisine || null;
 
-    // chips
+    // Crea "chip" per visualizzare informazioni rapide
     const chipMeta = [
       { label: distanceKm, cat: 'meta' }, { label: price, cat: 'meta' }, { label: cuisine, cat: 'meta' }
     ];
     const likesCount = Array.isArray(g?.liked) ? g.liked.length : (Array.isArray(el?.liked) ? el.liked.length : 0);
     chipMeta.unshift({ label: `${likesCount} ❤️`, cat: 'meta', id: 'dpLikeChip' });
-    // use chips template
+
+    // Usa un template per i chip
     const chipsTpl = document.getElementById('dp-chips-template');
     if (chipsTpl) {
-      const chipsNode = document.importNode(chipsTpl.content, true);
-      const chipsSection = chipsNode.querySelector('.chips-section');
-      chipMeta.forEach(c => { if (c.label != null) {
+      const chipsNode = document.importNode(chipsTpl.content, true); // Clona il template per utilizzarlo nel dom
+      const chipsSection = chipsNode.querySelector('.chips-section'); // Seleziona la sezione dei chip 
+      chipMeta.forEach(c => { if (c.label != null) { //chipMeta è un array di oggetti {label,cat,id} contiene le info da mostrare
         const span = document.createElement('span'); span.className = 'chip'; span.dataset.cat = c.cat; if (c.id) span.id = c.id; span.textContent = c.label;
         chipsSection.appendChild(span);
       }});
-      detailsEl.appendChild(chipsSection);
+      detailsEl.appendChild(chipsSection); // Aggiunge i chip ai dettagli
     }
 
-    // info card
+    // Crea una scheda informativa con indirizzo, telefono, sito web, ecc.
     const infoTpl = document.getElementById('dp-info-card-template');
     if (infoTpl) {
       const infoNode = document.importNode(infoTpl.content, true);
       const factsGrid = infoNode.querySelector('.facts-grid');
       const appendFact = (icon, text, isLink=false) => {
         if (!text) return;
-        const div = document.createElement('div'); div.className = 'fact';
-        const ic = document.createElement('span'); ic.className = 'icon'; ic.textContent = icon;
-        const ft = document.createElement('span'); ft.className = 'fact-text';
-        if (isLink) { const a = document.createElement('a'); a.href = text; a.target = '_blank'; a.rel='noopener'; a.textContent='Sito Web'; a.style.fontSize='18px'; ft.appendChild(a); }
-        else ft.textContent = text;
-        div.appendChild(ic); div.appendChild(ft); factsGrid.appendChild(div);
+        const div = document.createElement('div'); 
+        div.className = 'fact';
+        const ic = document.createElement('span'); 
+        ic.className = 'icon'; 
+        ic.textContent = icon;
+        const ft = document.createElement('span');
+        ft.className = 'fact-text';
+        if (isLink) { 
+          const a = document.createElement('a'); 
+          a.href = text;
+          a.target = '_blank';
+          a.rel='noopener';
+          a.textContent='Sito Web'; 
+          a.style.fontSize='18px'; 
+          ft.appendChild(a); 
+        } else ft.textContent = text;
+        div.appendChild(ic); 
+        div.appendChild(ft); 
+        factsGrid.appendChild(div);
       };
       appendFact('📍', addr);
       appendFact('📞', phone);
@@ -107,7 +128,7 @@ export default class DetailsView {
       detailsEl.appendChild(infoNode);
     }
 
-    // hours (use template, renderOpeningHoursHTML returns HTML grid)
+    // Mostra gli orari di apertura
     const hoursSource = g.opening_hours_weekday_text || g.opening_hours || tags.opening_hours;
     if (hoursSource) {
       const hoursTpl = document.getElementById('dp-hours-card-template');
@@ -119,7 +140,7 @@ export default class DetailsView {
       }
     }
 
-    // editorial
+    // Mostra il sommario editoriale se disponibile
     if (g.editorial_summary?.overview) {
       const edTpl = document.getElementById('dp-editorial-template');
       if (edTpl) {
@@ -128,12 +149,12 @@ export default class DetailsView {
         detailsEl.appendChild(edNode);
       }
     }
-
+    // Mostra il rating complessivo
     this._renderStars(g?.rating, 'dpStars');
     const ratingNumEl = document.getElementById('dpRatingNumber');
     if (ratingNumEl) ratingNumEl.textContent = rating ? rating : '';
 
-  // Reviews: populate Google reviews using template
+  // Recensioni: popola le recensioni di Google usando un template
     const reviewsListEl = document.getElementById('dpReviewsList');
     const reviewsCount = document.getElementById('dpReviewsCount');
     while (reviewsListEl.firstChild) reviewsListEl.removeChild(reviewsListEl.firstChild);
@@ -141,9 +162,9 @@ export default class DetailsView {
     const noReviewTpl = document.getElementById('dp-no-reviews-template');
     if (Array.isArray(data?.reviews) && data.reviews.length) {
       data.reviews.forEach(r => {
-        let node = reviewTpl ? document.importNode(reviewTpl.content, true).querySelector('.review') : document.createElement('div');
-        if (!reviewTpl) node.className = 'review';
-        // fill fields
+        let node = reviewTpl ? document.importNode(reviewTpl.content, true).querySelector('.review') : document.createElement('div'); // Clona il template ??
+        if (!reviewTpl) node.className = 'review'; // Se non esiste il template, crea un div con classe 'review'
+        // Riempi i campi
         const name = r.author_name || 'Anonimo';
         const url = r.author_url || null;
         const avatar = r.profile_photo_url || '';
@@ -152,6 +173,7 @@ export default class DetailsView {
         const relTime = r.relative_time_description || '';
         const text = r.text || '';
 
+        // Gestione avatar: se c'è l'URL, crea un'immagine, altrimenti usa l'omino di fallback
         const avatarWrap = node.querySelector('.review-avatar-wrapper');
         if (avatarWrap) {
           if (avatar) {
@@ -177,11 +199,13 @@ export default class DetailsView {
             avatarWrap.appendChild(fb);
           }
         }
+        // Gestione autore
         const authorWrap = node.querySelector('.review-author-wrap');
         if (authorWrap) {
           if (url) { const a = document.createElement('a'); a.href = url; a.target='_blank'; a.rel='noopener'; a.className='review-author'; a.textContent = name; authorWrap.appendChild(a); }
           else { const s = document.createElement('span'); s.className='review-author'; s.textContent = name; authorWrap.appendChild(s); }
         }
+        // Gestione data, stelle, testo
         const timeEl = node.querySelector('.review-time'); if (timeEl) timeEl.textContent = relTime;
         const starsWrap = node.querySelector('.review-stars-wrap'); if (starsWrap) starsWrap.innerHTML = this._buildReviewStars(rating);
         const textEl = node.querySelector('.review-text'); if (textEl) textEl.textContent = text;
@@ -194,10 +218,8 @@ export default class DetailsView {
       if (reviewsCount) reviewsCount.textContent = '';
     }
 
-    // (fetch delle recensioni utente verrà avviato dopo che _currentDetail è stato impostato)
-
-    // Ensure the detail panel UI bindings (like, prev/next, keyboard) are attached once.
-    // Prepare current detail context for persistence actions (like)
+    // Assicura che il pannello dettagli abbia i binding degli eventi (like, prev/next, tastiera) una sola volta
+    // Prepara il contesto dei dettagli correnti per le azioni di persistenza (like)
     try {
       const raw = el?.raw ?? el;
       const docId = raw ? `osm_${raw.type}_${raw.id}` : null;
@@ -213,7 +235,8 @@ export default class DetailsView {
       this._currentDetail = { docId, payload: minimalPayload, rawEl: el, data };
     } catch (e) { console.warn('Unable to compute current detail context for like toggling', e); }
     this.bindDetailPanelEventsOnce();
-    // Reset like button state synchronously to avoid propagation of previous optimistic toggles
+
+    // Resetta lo stato del bottone like in attesa del fetch dello stato reale 
     try {
       const likeBtn = document.getElementById('dpLikeBtn');
       const sp = likeBtn?.querySelector('span');
@@ -221,7 +244,7 @@ export default class DetailsView {
         likeBtn.classList.remove('liked');
         if (sp) sp.textContent = '♡';
       }
-      // Async: fetch authoritative like state and update UI
+      // In modo asincrono: fetch dello stato attuale del like e aggiornamento UI
       (async () => {
         try {
           const ctx = this._currentDetail || {};
@@ -232,7 +255,7 @@ export default class DetailsView {
             if (liked) { likeBtn.classList.add('liked'); if (sp) sp.textContent = '♥'; }
             else { likeBtn.classList.remove('liked'); if (sp) sp.textContent = '♡'; }
           }
-          // Update likes chip with server value
+          // Aggiorna il chip dei likes con il valore del DB
           if (this.controller && typeof this.controller.getSavedRestaurant === 'function') {
             const saved = await this.controller.getSavedRestaurant(docId);
             const likeChip = document.getElementById('dpLikeChip');
@@ -243,7 +266,7 @@ export default class DetailsView {
       })();
     } catch(e) { /* ignore */ }
     
-    // Carica e mostra le recensioni UTENTE dopo quelle di Google (ora che _currentDetail è pronto)
+    // Carica e mostra le recensioni UTENTE dopo quelle di Google
     (async () => {
       try {
         const ctx = this._currentDetail || {};
@@ -256,7 +279,7 @@ export default class DetailsView {
             const googleCount = Array.isArray(data?.reviews) ? data.reviews.length : 0;
             const reviewsCount = document.getElementById('dpReviewsCount');
             if (reviewsCount) reviewsCount.textContent = `(${googleCount + this._userReviews.length})`;
-            // If current user has a review, update button label to "Modifica recensione"
+            // Se l'utente ha già recensito, cambia il testo del bottone Aggiungi recensione in Modifica recensione
             try {
               const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null;
               if (uid) {
@@ -272,7 +295,7 @@ export default class DetailsView {
       }
     })();
 
-    // Abilita/Disabilita il bottone Aggiungi recensione in base al login (anche al primo showDetails)
+    // Abilita/Disabilita il bottone Aggiungi recensione in base al login 
     const addBtn = document.getElementById('dpAddReviewBtn');
     if (addBtn) {
       const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
@@ -287,12 +310,12 @@ export default class DetailsView {
     }
   }
 
-    // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
+  // Bind degli eventi del pannello dettagli (UI only). Chiama il controller per le azioni di navigazione.
   bindDetailPanelEventsOnce() {
-    if (this._detailBindingsInitialized) return;
+    if (this._detailBindingsInitialized) return; // già inizializzato 
     this._detailBindingsInitialized = true;
 
-    // Like button
+    // Bottone like
     const likeBtn = document.getElementById('dpLikeBtn');
     if (likeBtn && !likeBtn.__bound) {
       if (!likeBtn.querySelector('span')) {
@@ -302,15 +325,14 @@ export default class DetailsView {
         likeBtn.appendChild(sp);
       }
       likeBtn.addEventListener('click', async () => {
-        // richiede login
+        // il like richiede login
         const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
         if (!isLogged) { this._showToast('Devi essere loggato per fare questo', 'error'); return; }
-        // optimistic UI toggle
         const sp = likeBtn.querySelector('span');
-        likeBtn.classList.toggle('liked');
-        if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
+        likeBtn.classList.toggle('liked'); //cambio da like/dislike in UI
+        if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡'; // se liked, cuore pieno
 
-        // call controller to persist (controller.toggleLike must exist)
+        // chiamo il controllore per salvare il like
         try {
           const ctx = this._currentDetail || {};
           const docId = ctx.docId;
@@ -326,13 +348,13 @@ export default class DetailsView {
           const res = await this.controller.toggleLike(docId, payload);
           const likeChip = document.getElementById('dpLikeChip');
           if (!res || !res.ok) {
-            // revert UI
+            // caso di errore: ripristina UI
             likeBtn.classList.toggle('liked');
             if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
             console.warn('toggleLike failed', res?.error);
             this._showToast('Operazione non riuscita', 'error');
           } else {
-            // ensure final UI matches server and update likes chip
+            // assicurati che l'UI rifletta lo stato reale nel DB
             if (res.liked) {
               likeBtn.classList.add('liked');
               if (sp) sp.textContent = '♥';
@@ -353,16 +375,16 @@ export default class DetailsView {
           }
         } catch (e) {
           console.error('Error toggling like', e);
-          // revert optimistic UI
+          // ripristina UI
           likeBtn.classList.toggle('liked');
           if (sp) sp.textContent = likeBtn.classList.contains('liked') ? '♥' : '♡';
           this._showToast('Errore durante il like', 'error');
         }
       });
-      likeBtn.__bound = true;
+      likeBtn.__bound = true; // marca come bound (per evitare doppioni)
     }
 
-    // Prev/Next buttons
+    // Bottoni scorrimento foto
     const prevBtn = document.getElementById('dpPrevPhoto');
     if (prevBtn && !prevBtn.__bound) {
       prevBtn.addEventListener('click', () => this.controller?.onPrevPhoto && this.controller.onPrevPhoto());
@@ -374,30 +396,29 @@ export default class DetailsView {
       nextBtn.__bound = true;
     }
 
-    // Keyboard shortcuts (global once)
-        if (!window.__dp_kb_bound) {
-        document.addEventListener('keydown', (e) => {
-            const detailView = document.getElementById('detailView');
-            if (!detailView || detailView.classList.contains('hidden')) return;
+    // Scorciatoie da tastiera
+    if (!window.__dp_kb_bound) {
+    document.addEventListener('keydown', (e) => {
+        const detailView = document.getElementById('detailView');
+        if (!detailView || detailView.classList.contains('hidden')) return;
 
-            if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            this.controller?.onPrevPhoto && this.controller.onPrevPhoto();
-            } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            this.controller?.onNextPhoto && this.controller.onNextPhoto();
-            } else if (e.key === 'Escape') {
-            e.preventDefault();
-            if (this.controller?.onBack) this.controller.onBack(); else document.getElementById('dpBackToList')?.click();
-            } else if (e.key === 'l' || e.key === 'L') {
-            // Toggle like
-            document.getElementById('dpLikeBtn')?.click();
-            }
-        });
-        window.__dp_kb_bound = true;
+        if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        this.controller?.onPrevPhoto && this.controller.onPrevPhoto();
+        } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        this.controller?.onNextPhoto && this.controller.onNextPhoto();
+        } else if (e.key === 'Escape') {
+        e.preventDefault();
+        if (this.controller?.onBack) this.controller.onBack(); else document.getElementById('dpBackToList')?.click();
+        } else if (e.key === 'l' || e.key === 'L') {
+        document.getElementById('dpLikeBtn')?.click();
         }
+    });
+    window.__dp_kb_bound = true;
+    }
 
-    // Add review button -> opens inline form replacing the reviews list
+    // Aggiungi recensione -> apre il form inline sostituendo la lista recensioni
     const addBtn = document.getElementById('dpAddReviewBtn');
     if (addBtn) {
       const isLogged = !!(this.controller && typeof this.controller.isLoggedIn === 'function' && this.controller.isLoggedIn());
@@ -415,7 +436,7 @@ export default class DetailsView {
     }
   }
 
-  // Toast helper (namespaced CSS: fe-toast)
+  // Mostra un toast di feedback all'utente
   _showToast(message, variant = 'success') {
     try {
       let container = document.querySelector('.fe-toast-container');
@@ -436,79 +457,82 @@ export default class DetailsView {
     } catch {}
   }
 
-  // Renders an inline form in place of reviews list. Nome da localStorage, rating obbligatorio; salva via controller
-    _showAddReviewForm() {
-        const listEl = document.getElementById('dpReviewsList');
-        if (!listEl) return;
-        if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
-        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
-        const addTpl = document.getElementById('dp-add-review-template');
-        const node = addTpl ? document.importNode(addTpl.content, true) : null;
-        if (node) listEl.appendChild(node);
-        // wiring
-        const formRoot = listEl.querySelector('#addReviewForm') || listEl;
-        // set default name from localStorage
-        const nameInput = formRoot.querySelector('#arfName');
-        if (nameInput) {
-          try { nameInput.value = localStorage.getItem('userName') || 'Anonimo'; } catch { nameInput.value = 'Anonimo'; }
-        }
-        // Prefill existing review if present for current user
-  const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null;
-  const existing = uid ? (this._userReviews || []).find(r => (r.AuthorID || r.authorId || r.authorID) === uid) : null;
-        let currentRating = existing && typeof existing.rating === 'number' ? existing.rating : null;
-        const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
-        const ratingInput = formRoot.querySelector('#arfRating');
-        const saveBtn = formRoot.querySelector('#arfSave');
-        const cancelBtn = formRoot.querySelector('#arfCancel');
-        const ta = formRoot.querySelector('#arfText');
-        if (ta && existing && typeof existing.text === 'string') ta.value = existing.text;
-        if (saveBtn && existing) saveBtn.textContent = 'Aggiorna';
-        const renderStars = (val = currentRating) => {
+  // Mostra il form di aggiunta recensione al posto della lista. Nome da localStorage, rating obbligatorio; salva via controller
+  _showAddReviewForm() {
+      const listEl = document.getElementById('dpReviewsList');
+      if (!listEl) return;
+      if (this._savedReviewsHtml == null) this._savedReviewsHtml = listEl.innerHTML;
+      while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+      const addTpl = document.getElementById('dp-add-review-template');
+      const node = addTpl ? document.importNode(addTpl.content, true) : null;
+      if (node) listEl.appendChild(node);
+      // collega eventi form 
+      const formRoot = listEl.querySelector('#addReviewForm') || listEl;
+      // imposta come nome quello preso da localStorage
+      const nameInput = formRoot.querySelector('#arfName');
+      if (nameInput) {
+        try { nameInput.value = localStorage.getItem('userName') || 'Anonimo'; } catch { nameInput.value = 'Anonimo'; }
+      }
+      // Precompila se l'utente ha già recensito
+      const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null; // ID utente corrente
+      const existing = uid ? (this._userReviews || []).find(r => (r.AuthorID || r.authorId || r.authorID) === uid) : null; // recensione esistente
+      let currentRating = existing && typeof existing.rating === 'number' ? existing.rating : null; // rating corrente
+      const stars = Array.from(formRoot.querySelectorAll('.arf-star'));
+      const ratingInput = formRoot.querySelector('#arfRating');
+      const saveBtn = formRoot.querySelector('#arfSave');
+      const cancelBtn = formRoot.querySelector('#arfCancel');
+      const ta = formRoot.querySelector('#arfText'); // textarea
+      if (ta && existing && typeof existing.text === 'string') ta.value = existing.text; // precompila testo
+      if (saveBtn && existing) saveBtn.textContent = 'Aggiorna'; // cambia etichetta bottone se esiste già
+
+      // Funzione per renderizzare le stelle in base al rating corrente
+      const renderStars = (val = currentRating) => {
         stars.forEach((s, idx) => { const active = val != null && idx < val; s.classList.toggle('active', !!active); s.style.color = active ? '#FFD54A' : '#ddd'; });
         if (saveBtn) saveBtn.disabled = (val == null);
-        };
-        stars.forEach(b => b.addEventListener('click', () => { const v = parseInt(b.dataset.value, 10); currentRating = (v>=1 && v<=5)? v : null; if (ratingInput) ratingInput.value = currentRating != null ? String(currentRating) : ''; renderStars(); }));
-        if (ratingInput) ratingInput.addEventListener('input', () => { const v = parseInt(ratingInput.value, 10); currentRating = (!isNaN(v) && v>=1 && v<=5) ? v : null; renderStars(); });
-        if (cancelBtn) cancelBtn.addEventListener('click', () => { if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else while (listEl.firstChild) listEl.removeChild(listEl.firstChild); });
-        if (saveBtn) saveBtn.addEventListener('click', async () => {
+      };
+      // Collega eventi 
+      stars.forEach(b => b.addEventListener('click', () => { const v = parseInt(b.dataset.value, 10); currentRating = (v>=1 && v<=5)? v : null; if (ratingInput) ratingInput.value = currentRating != null ? String(currentRating) : ''; renderStars(); })); // click stelle
+      if (ratingInput) ratingInput.addEventListener('input', () => { const v = parseInt(ratingInput.value, 10); currentRating = (!isNaN(v) && v>=1 && v<=5) ? v : null; renderStars(); }); // input manuale (1-5)
+      if (cancelBtn) cancelBtn.addEventListener('click', () => { if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else while (listEl.firstChild) listEl.removeChild(listEl.firstChild); });
+      if (saveBtn) saveBtn.addEventListener('click', async () => {
+        try {
+          const nameVal = (formRoot.querySelector('#arfName')?.value || 'Anonimo');
+          const textVal = (formRoot.querySelector('#arfText')?.value || '').trim();
+          const rating = currentRating;
+          if (!(rating >= 1 && rating <= 5)) return;
+          const ctx = this._currentDetail || {}; const restaurantId = ctx?.docId; const restaurantName = ctx?.payload?.name || '';
+          if (!restaurantId || !this.controller || typeof this.controller.addUserReview !== 'function') return;
+          const res = await this.controller.addUserReview({ restaurantId, restaurantName, author_name: nameVal, rating, text: textVal });
+          if (!res || !res.ok) { this._showToast('Impossibile aggiungere la recensione. Riprova.', 'error'); return; }
+          // Toast di successo
+          this._showToast('Recensione aggiunta con successo', 'success');
+          // Ripristina lista precedente
+          if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else { while (listEl.firstChild) listEl.removeChild(listEl.firstChild); }
+          // Ricarica recensioni utente e rinfresca solo le user-review nodes
           try {
-            const nameVal = (formRoot.querySelector('#arfName')?.value || 'Anonimo');
-            const textVal = (formRoot.querySelector('#arfText')?.value || '').trim();
-            const rating = currentRating;
-            if (!(rating >= 1 && rating <= 5)) return;
-            const ctx = this._currentDetail || {}; const restaurantId = ctx?.docId; const restaurantName = ctx?.payload?.name || '';
-            if (!restaurantId || !this.controller || typeof this.controller.addUserReview !== 'function') return;
-            const res = await this.controller.addUserReview({ restaurantId, restaurantName, author_name: nameVal, rating, text: textVal });
-            if (!res || !res.ok) { this._showToast('Impossibile aggiungere la recensione. Riprova.', 'error'); return; }
-            // Toast di successo
-            this._showToast('Recensione aggiunta con successo', 'success');
-            // Ripristina lista precedente
-            if (this._savedReviewsHtml != null) { listEl.innerHTML = this._savedReviewsHtml; this._savedReviewsHtml = null; } else { while (listEl.firstChild) listEl.removeChild(listEl.firstChild); }
-            // Ricarica recensioni utente e rinfresca solo le user-review nodes
-            try {
-              const ctx2 = this._currentDetail || {}; const rid2 = ctx2?.docId;
-              if (rid2 && this.controller && typeof this.controller.fetchUserReviews === 'function') {
-                const fresh = await this.controller.fetchUserReviews(rid2);
-                this._userReviews = Array.isArray(fresh) ? fresh : [];
-                const list2 = document.getElementById('dpReviewsList');
-                if (list2) list2.querySelectorAll('.review.user-review').forEach(n => n.remove());
-                this._renderUserReviewsAppend(this._userReviews);
-              }
-            } catch {}
-            // Aggiorna contatore totale
-            const googleCount = Array.isArray(this._currentDetail?.data?.reviews) ? this._currentDetail.data.reviews.length : 0;
-            const reviewsCountEl = document.getElementById('dpReviewsCount');
-            if (reviewsCountEl) reviewsCountEl.textContent = `(${googleCount + this._userReviews.length})`;
-            // Update CTA to Modifica recensione
-            const addBtn3 = document.getElementById('dpAddReviewBtn');
-            if (addBtn3) addBtn3.textContent = 'Modifica recensione';
-          } catch (e) {
-            console.warn('Errore salvataggio recensione', e);
-            this._showToast('Errore durante il salvataggio della recensione.', 'error');
-          }
-        });
-        renderStars();
-    }
+            const ctx2 = this._currentDetail || {}; const rid2 = ctx2?.docId;
+            if (rid2 && this.controller && typeof this.controller.fetchUserReviews === 'function') {
+              const fresh = await this.controller.fetchUserReviews(rid2);
+              this._userReviews = Array.isArray(fresh) ? fresh : [];
+              const list2 = document.getElementById('dpReviewsList');
+              if (list2) list2.querySelectorAll('.review.user-review').forEach(n => n.remove());
+              this._renderUserReviewsAppend(this._userReviews);
+            }
+          } catch {}
+          // Aggiorna contatore totale
+          const googleCount = Array.isArray(this._currentDetail?.data?.reviews) ? this._currentDetail.data.reviews.length : 0;
+          const reviewsCountEl = document.getElementById('dpReviewsCount');
+          if (reviewsCountEl) reviewsCountEl.textContent = `(${googleCount + this._userReviews.length})`;
+          // Update CTA to Modifica recensione
+          const addBtn3 = document.getElementById('dpAddReviewBtn');
+          if (addBtn3) addBtn3.textContent = 'Modifica recensione';
+        } catch (e) {
+          console.warn('Errore salvataggio recensione', e);
+          this._showToast('Errore durante il salvataggio della recensione.', 'error');
+        }
+      });
+      renderStars(); 
+  }
 
     // Appende recensioni utente al fondo della lista, con avatar standard mediante template
     _renderUserReviewsAppend(reviews) {
@@ -530,7 +554,7 @@ export default class DetailsView {
             const uid = (this.controller && typeof this.controller.getCurrentUserId === 'function') ? this.controller.getCurrentUserId() : null;
             const authorId = r.AuthorID || r.authorId || r.authorID || null;
             if (uid && authorId && uid === authorId) {
-              // Try to use current user's profile photo from localStorage
+              // Prova a caricare foto da localStorage
               let photoRaw = null; try { photoRaw = localStorage.getItem('userPhoto'); } catch {}
               const photoUrl = photoRaw ? (() => { try { return JSON.parse(photoRaw); } catch { return null; } })() : null;
               if (photoUrl) {
@@ -570,7 +594,7 @@ export default class DetailsView {
         img.src = this._photosArray[this._currentPhotoIndex];
     }
 
-    // Public API: navigate photos from controller
+    // Navigazione foto
     prevPhoto() {
         if (!this._photosArray || this._photosArray.length === 0) return;
         this._showPhoto(this._currentPhotoIndex - 1);
@@ -604,6 +628,7 @@ export default class DetailsView {
         }
     }
 
+  // Renderizza orari di apertura in HTML da stringa/array
   renderOpeningHoursHTML(opening) {
     if (!opening) return '';
     let lines = [];
@@ -638,9 +663,7 @@ export default class DetailsView {
     return `<div class="hours-grid">${boxes}</div>`;
   }
 
-  
-
-  // Build 5-star inline HTML for a numeric rating (round to nearest whole star)
+  // Costruisce l'HTML delle stelle per le recensioni
   _buildReviewStars(value) {
     const r = (typeof value === 'number' && isFinite(value)) ? Math.max(0, Math.min(5, Math.round(value))) : 0;
     let html = '';
