@@ -104,6 +104,7 @@ export default class ProfileView {
 
         reviews.forEach((review, index) => {
             const dateStr = this._formatReviewDate(review.time);
+            console.log("Rendering review for restaurant:", review);
 
             const card = document.createElement('div');
             card.className = 'd-flex justify-content-center mb-4';

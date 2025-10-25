@@ -156,13 +156,26 @@ export default class ProfiloController {
     async loadUserReviews() {
         const userID = await this.fetchUserID();
         if (!userID) return;
-        // Modifica: recupera anche l'id Firestore
+        // Recupera id Firestore
         const reviewsData = await this.firestore.getUserReviews(userID);
-        // reviewsData ora deve essere [{...reviewData, firestoreId: id}, ...]
+        // Mapping esplicito PascalCase -> camelCase
         const reviews = reviewsData.map(r => {
-            const review = new Review(r);
-            if (r.firestoreId) review.firestoreId = r.firestoreId;
-            console.log("Review caricata con ID Firestore:", review.firestoreId);
+            const mapped = {
+                authorID: r.AuthorID || '',
+                restaurantID: r.RestaurantID || '',
+                restaurantName: r.RestaurantName || '',
+                author_name: r.author_name || '',
+                language: r.language || 'it',
+                original_language: r.original_language || 'it',
+                rating: r.rating || 0,
+                text: r.text || '',
+                time: r.time || new Date().toISOString(),
+                translated: r.translated || false,
+                firestoreId: r.firestoreId
+            };
+            const review = new Review(mapped);
+            review.firestoreId = r.firestoreId;
+            console.log("Struttura review da caricare:", review);
             return review;
         });
         this.view.displayReviews(reviews);
