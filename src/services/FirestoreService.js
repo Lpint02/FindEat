@@ -1,6 +1,6 @@
 import { app } from "./firebase-config.js";
 import { db } from "./firebase-config.js";
-import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "firebase/firestore";
 
 // Singleton DB
 let dbInstance = null;

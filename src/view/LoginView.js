@@ -1,4 +1,4 @@
-import LoginController from "../src/controller/LoginController.js";
+import LoginController from "../controller/LoginController.js";
 
 export default class LoginView 
 {

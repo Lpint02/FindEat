@@ -1,4 +1,4 @@
-import ProfiloController from "../src/controller/ProfileController.js";
+import ProfiloController from "../controller/ProfileController.js";
 import MapView from "./MapView.js";
 import DetailsView from './DetailsView.js';
 

@@ -1,4 +1,4 @@
-import ProfileController from "../src/controller/ProfileController.js";
+import ProfileController from "../controller/ProfileController.js";
 
 export default class ProfileView {
 
