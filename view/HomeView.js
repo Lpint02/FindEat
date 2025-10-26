@@ -319,4 +319,8 @@ export default class HomeView {
       });
     }
   }
+
+  updateMessage(element, message){
+      element.innerText = message;
+  }
 }
