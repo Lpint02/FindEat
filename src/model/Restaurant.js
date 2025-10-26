@@ -19,7 +19,7 @@ export default class Restaurant {
     }
     return this.distanceKm;
   }
-
+//ciao a tutti
   static fromOverpass(el) {
     const lat = el.lat ?? el.center?.lat;
     const lon = el.lon ?? el.center?.lon;
