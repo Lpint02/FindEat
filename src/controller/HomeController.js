@@ -181,20 +181,37 @@ export default class HomeController {
       const alreadyLiked = likedArray.includes(uid);
 
       if (!alreadyLiked) {
-        // Aggiungi userId a Restaurant.liked e restaurant id a User.likedRestaurants
-        const p1 = this._firebase.arrayUnionField('Restaurant', docId, 'liked', uid);
-        const p2 = this._firebase.arrayUnionField('User', uid, 'likedRestaurants', docId);
-        await Promise.all([p1, p2]);
-        // aggiorna local set
+        // Optimistic update: aggiorna subito il set locale per riflettersi nella lista al "back"
         this._likedRestaurantIds.add(docId);
+        // Aggiorna anche la cache locale dei ristoranti per coerenza immediata della UI lista
+        this._updateRestaurantLikeFlagInCache(docId, true);
+        try {
+          // Aggiungi userId a Restaurant.liked e restaurant id a User.likedRestaurants
+          const p1 = this._firebase.arrayUnionField('Restaurant', docId, 'liked', uid);
+          const p2 = this._firebase.arrayUnionField('User', uid, 'likedRestaurants', docId);
+          await Promise.all([p1, p2]);
+        } catch (e) {
+          // rollback in caso di errore
+          this._likedRestaurantIds.delete(docId);
+          this._updateRestaurantLikeFlagInCache(docId, false);
+          throw e;
+        }
         return { ok: true, liked: true };
       } else {
-        // Rimuovi userId da Restaurant.liked e restaurant id da User.likedRestaurants
-        const p1 = this._firebase.arrayRemoveField('Restaurant', docId, 'liked', uid);
-        const p2 = this._firebase.arrayRemoveField('User', uid, 'likedRestaurants', docId);
-        await Promise.all([p1, p2]);
-        // aggiorna local set
+        // Optimistic update: rimuovi subito dal set locale
         this._likedRestaurantIds.delete(docId);
+        this._updateRestaurantLikeFlagInCache(docId, false);
+        try {
+          // Rimuovi userId da Restaurant.liked e restaurant id da User.likedRestaurants
+          const p1 = this._firebase.arrayRemoveField('Restaurant', docId, 'liked', uid);
+          const p2 = this._firebase.arrayRemoveField('User', uid, 'likedRestaurants', docId);
+          await Promise.all([p1, p2]);
+        } catch (e) {
+          // rollback in caso di errore
+          this._likedRestaurantIds.add(docId);
+          this._updateRestaurantLikeFlagInCache(docId, true);
+          throw e;
+        }
         return { ok: true, liked: false };
       }
     } catch (e) {
@@ -230,6 +247,27 @@ export default class HomeController {
     const raw = r.raw ?? r;
     if (raw && raw.type && raw.id) return `osm_${raw.type}_${raw.id}`;
     return r.docId || null;
+  }
+
+  /**
+   * Aggiorna la proprietà isLiked nel cache array dei ristoranti già caricati
+   * in base al docId fornito. Migliora la coerenza della UI quando si torna alla lista.
+   * @param {string} docId
+   * @param {boolean} liked
+   */
+  _updateRestaurantLikeFlagInCache(docId, liked) {
+    try {
+      if (!Array.isArray(this._restaurants) || !docId) return;
+      for (const r of this._restaurants) {
+        const rid = this._computeDocIdFromRestaurant(r);
+        if (rid && rid === docId) {
+          r.isLiked = !!liked;
+          break;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to update cached like flag', e);
+    }
   }
 
   /**

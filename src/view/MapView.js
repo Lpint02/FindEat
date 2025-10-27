@@ -105,6 +105,12 @@ export default class MapView {
         // Rimuovi i marker esistenti
         for (const m of this.markers.values()) { try { m.remove(); } catch(e) {} }
         this.markers.clear();
+        // Reset selezione corrente per evitare marker "rossi" appesi quando la lista cambia
+        if (this.selectedMarker) {
+            try { this.selectedMarker.setIcon(this.defaultIcon); } catch(e) { /* ignore */ }
+        }
+        this.selectedMarker = null;
+        this.selected = null;
 
         if (!Array.isArray(elements) || elements.length === 0) return;
 
@@ -138,13 +144,16 @@ export default class MapView {
 
     // Gestisce la selezione di un marker
     _onSelectMarker({ data, fallbackName, el, location }, externalSelect) {
-        if (this.selected?.el?.id && this.selected.el.id !== el.id) {
-            const prevMarker = this.markers.get(this.selected.el.id);
-            if (prevMarker) prevMarker.setIcon(this.defaultIcon);
+        // Ripristina il marker selezionato in precedenza (se diverso dal nuovo)
+        const selMarker = this.markers.get(el.id);
+        if (this.selectedMarker && this.selectedMarker !== selMarker) {
+            try { this.selectedMarker.setIcon(this.defaultIcon); } catch(e) { /* ignore */ }
         }
         this.selected = { data, el, location };
-        const selMarker = this.markers.get(el.id);
-        if (selMarker) selMarker.setIcon(this.selectedIcon);
+        if (selMarker) {
+            try { selMarker.setIcon(this.selectedIcon); } catch(e) { /* ignore */ }
+            this.selectedMarker = selMarker;
+        }
         if (location?.lat && location?.lon && this.map) {
             this.map.setView([location.lat, location.lon], Math.max(this.map.getZoom(), 16));
         }
@@ -185,10 +194,10 @@ export default class MapView {
 
     // Cancella la selezione sulla mappa
     clearMapSelection() {
-        if (this.selected?.el?.id) {
-            const prevMarker = this.markers.get(this.selected.el.id);
-            if (prevMarker) prevMarker.setIcon(this.defaultIcon);
+        if (this.selectedMarker) {
+            try { this.selectedMarker.setIcon(this.defaultIcon); } catch(e) { /* ignore */ }
         }
+        this.selectedMarker = null;
         this.selected = null;
     }
 }
