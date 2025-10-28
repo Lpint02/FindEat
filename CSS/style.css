@@ -96,11 +96,11 @@ html, body {
   background: #111;
   color: #fff;
   border: 1px solid #111;
-  padding: 8px 12px;
-  border-radius: 10px;
+  padding: 6px 10px; /* slimmer to leave more room for stars */
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
+  font-size: 14px; /* smaller label to avoid hiding stars */
+  line-height: 1.1;
 }
 .add-review-btn:hover { opacity: 0.9; }
 #dpReviewsLabel { font-size: 22px; font-weight: 600; color: #111; }
@@ -316,10 +316,15 @@ html, body {
       color: #111;
     }
 
-    .reviews-header { cursor: default; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .reviews-header .section-label { font-size: 25px; font-weight: 700; margin-right: 14px; }
-    .reviews-header .rating-number { font-weight:700; font-size:16px; background:#111; color:#fff; padding:3px 8px; border-radius:6px; }
-    .reviews-count { font-size: 18px; opacity:0.7; }
+  /* Reviews header now on two lines: title on top, meta+button below */
+  .reviews-header { cursor: default; display:flex; flex-direction: column; align-items: stretch; gap:6px; }
+  .reviews-header .section-label { font-size: 25px; font-weight: 700; }
+  .reviews-meta-row { display:flex; align-items:center; justify-content: space-between; gap:10px; }
+  .reviews-meta-left { display:flex; align-items:center; gap:8px; flex:1 1 auto; min-width:0; }
+  .reviews-header .rating-number { font-weight:700; font-size:16px; background:#111; color:#fff; padding:3px 8px; border-radius:6px; white-space: nowrap; }
+  #dpStars { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reviews-count { font-size: 18px; opacity:0.7; white-space: nowrap;}
+  .add-review-btn { flex: 0 0 auto; }
 
     .reviews-list { padding-right: 6px; margin-top: 6px; display: flex; flex-direction: column; gap: 10px; }
 
@@ -377,7 +382,7 @@ html, body {
     .review-time { font-size: 14px; color: #666; }
 
     /* Stars row (applied to review template wrapper .review-stars-wrap) */
-  .review-stars-wrap { display: flex; align-items: center; gap: 4px; margin: 0; }
+    .review-stars-wrap { display: flex; align-items: center; gap: 4px; margin: 0; }
     .review-stars-wrap .star { font-size: 30px; line-height: 1; }
     .review-stars-wrap .star.on { color: #FFD54A; margin: 0; }
     .review-stars-wrap .star.off { color: #ddd; }
