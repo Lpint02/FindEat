@@ -33,14 +33,15 @@ module.exports = {
     // Copia le altre pagine HTML e le risorse
     new CopyWebpackPlugin({
       patterns: [
-        { from: 'pages', to: 'pages' },
-        { from: 'CSS', to: 'CSS' },
-        { from: 'images', to: 'images' },
+        { from: 'src/pages', to: 'pages' },
+        { from: 'src/CSS', to: 'CSS' },
+        { from: 'src/images', to: 'images' },
       ],
     }),
   ],
   devServer: {
     static: './dist',
+    historyApiFallback: true,
     open: true,
   },
 };

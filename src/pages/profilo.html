@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,18 +9,30 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 </head>
+
 <body>
-  <!-- Navbar Bootstrap -->
-  <nav class="navbar navbar-expand-lg bg-body-tertiary">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">FindEat</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-        <div class="navbar-nav ms-auto">
-          <a id="homeButton" class="nav-link">Home</a>
-        </div>
+  <!-- Custom Navbar Condivisa -->
+  <nav class="app-navbar">
+    <div class="navbar-container">
+      <a class="navbar-brand" href="#">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" class="brand-icon">
+          <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+          <path d="M7 2v20"></path>
+          <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+        </svg>
+        <span>FindEat</span>
+      </a>
+
+      <div class="navbar-actions">
+        <a class="nav-btn nav-btn-outline" id="homeButton">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          Home
+        </a>
       </div>
     </div>
   </nav>
@@ -35,10 +48,12 @@
         </div>
       </div>
       <div class="profile-actions d-flex gap-3 mt-4 mt-md-0">
-        <button id="btn-edit-photo" class="btn btn-primary btn-lg px-5">Modifica foto</button>
+        <button id="btn-edit-photo" class="nav-btn nav-btn-primary px-4">Modifica foto</button>
         <input type="file" id="input-photo" accept="image/*" style="display: none;">
-        <button id="btn-remove-photo" class="btn btn-secondary btn-lg px-5">Elimina foto</button>
-        <button id="btn-delete-profile" class="btn btn-danger btn-lg px-5">Cancella profilo</button>
+        <button id="btn-remove-photo" class="nav-btn nav-btn-outline px-4"
+          style="border: 2px solid #000000; color: #000000; background: transparent;">Elimina foto</button>
+        <button id="btn-delete-profile" class="nav-btn px-4"
+          style="border: 2px solid #e53935; color: #e53935; background: transparent;">Cancella profilo</button>
       </div>
     </header>
 
@@ -52,11 +67,13 @@
         </div>
 
         <!-- Controlli del carosello -->
-        <button class="carousel-control-prev" type="button" data-bs-target="#Conteiner_del_carosello" data-bs-slide="prev">
+        <button class="carousel-control-prev" type="button" data-bs-target="#Conteiner_del_carosello"
+          data-bs-slide="prev">
           <span class="carousel-control-prev-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Precedente</span>
         </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#Conteiner_del_carosello" data-bs-slide="next">
+        <button class="carousel-control-next" type="button" data-bs-target="#Conteiner_del_carosello"
+          data-bs-slide="next">
           <span class="carousel-control-next-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Successivo</span>
         </button>
@@ -93,4 +110,5 @@
   <!-- Bootstrap Bundle JS deve essere l'ULTIMO script -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

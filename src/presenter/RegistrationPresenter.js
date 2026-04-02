@@ -1,7 +1,7 @@
 import AuthService from "../services/AuthService.js";
 import FirestoreService from "../services/FirestoreService.js";
 
-export default class RegistrationController {
+export default class RegistrationPresenter {
 
     async handleRegistration(email, password, password2, name) {
 
@@ -14,14 +14,14 @@ export default class RegistrationController {
         if (success) {
             console.log("Registrazione avvenuta con successo");
 
-          //Salvo sul db l'utente (mail e nome)
-            try { 
+            //Salvo sul db l'utente (mail e nome)
+            try {
                 const firebase = new FirestoreService();
                 const toSaveRaw = { email: email, name: name };
                 const toSave = JSON.parse(JSON.stringify(toSaveRaw)); // strip undefined
                 await firebase.saveById('User', user.uid, toSave);
-            } catch(e) {
-                console.warn('Impossibile salvare su Firebase (non blocking)', e); 
+            } catch (e) {
+                console.warn('Impossibile salvare su Firebase (non blocking)', e);
             }
 
 
@@ -32,16 +32,16 @@ export default class RegistrationController {
         }
     }
 
-      // Salva l'utente su Firestore
+    // Salva l'utente su Firestore
     async save(email, password) {
         try {
-        await setDoc(doc(db, "users", this.uid), {
-            nome: email,
-            password: password,
-        });
-        console.log("Utente salvato su Firestore:", this.uid);
+            await setDoc(doc(db, "users", this.uid), {
+                nome: email,
+                password: password,
+            });
+            console.log("Utente salvato su Firestore:", this.uid);
         } catch (error) {
-        console.error("Errore salvataggio utente:", error);
+            console.error("Errore salvataggio utente:", error);
         }
     }
 

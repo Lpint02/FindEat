@@ -1,4 +1,4 @@
-import ProfiloController from "../controller/ProfileController.js";
+import ProfilePresenter from "../presenter/ProfilePresenter.js";
 import MapView from "./MapView.js";
 import DetailsView from './DetailsView.js';
 
@@ -10,7 +10,7 @@ export default class HomeView {
     this.listContainer = null;
     this.backBtn = null;
     this.mapView = new MapView(); // Delegato a MapView per separare le responsabilità della mappa
-    this.detailsView = new DetailsView(); 
+    this.detailsView = new DetailsView();
     this._defaultFilters = { liked: false, reviewed: false, distanceKm: 5 };
     this._currentFilters = { ...this._defaultFilters };
 
@@ -19,9 +19,9 @@ export default class HomeView {
   /**
    * Metodo chiamato dal Router dopo che l'HTML è stato caricato
    */
-  async init()  {
-    let utente = await new ProfiloController().fetchUserProfile();
-    console.log("IN STORAGE:",localStorage);
+  async init() {
+    let utente = await new ProfilePresenter().fetchUserProfile();
+    console.log("IN STORAGE:", localStorage);
 
     // Aggancia elementi UI
     this.listContainer = document.getElementById('listView');
@@ -40,7 +40,7 @@ export default class HomeView {
     if (this.controller && typeof this.controller.init === 'function') {
       this.controller.init(this._currentFilters);
     }
-        
+
   }//fine init
 
   // --- Parte dei filtri --- 
@@ -81,15 +81,17 @@ export default class HomeView {
     btnReset.addEventListener('click', () => {
       // reset to default (defaults may not include liked/reviewed in GenericHomeView)
       this._currentFilters = { ...this._defaultFilters };
+      this._appliedFilters = { ...this._currentFilters };
       if (liked) liked.checked = !!this._currentFilters.liked;
       if (reviewed) reviewed.checked = !!this._currentFilters.reviewed;
       dist.value = String(this._currentFilters.distanceKm ?? this._defaultFilters.distanceKm ?? 5);
       distValue.textContent = `${parseInt(dist.value, 10)} km`;
-      this._updateFilterButtonsState();
+      this._updateFilterButtonsState(true);
       this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
     });
 
     btnApply.addEventListener('click', () => {
+      this._appliedFilters = { ...this._currentFilters };
       this._updateFilterButtonsState(true);
       this.controller?.applyFilters && this.controller.applyFilters(this._currentFilters);
     });
@@ -101,17 +103,25 @@ export default class HomeView {
     return a.liked === b.liked && a.reviewed === b.reviewed && a.distanceKm === b.distanceKm;
   }
 
+  _filtersArePristine() {
+    const a = this._appliedFilters || this._defaultFilters, b = this._currentFilters;
+    return a.liked === b.liked && a.reviewed === b.reviewed && a.distanceKm === b.distanceKm;
+  }
+
   _updateFilterButtonsState(disableNow = false) {
     const btnApply = document.getElementById('applyFiltersBtn');
     const btnReset = document.getElementById('resetFiltersBtn');
     if (!btnApply || !btnReset) return;
-    const isDefault = this._filtersAreDefault();
-    btnApply.disabled = disableNow ? true : isDefault;
-    btnReset.disabled = isDefault;
+    
+    // Ripristina è disabilitato se siamo già sui valori di default
+    btnReset.disabled = this._filtersAreDefault();
+    
+    // Applica è disabilitato se sta caricando (disableNow) oppure se non ci sono nuove modifiche da applicare
+    btnApply.disabled = disableNow ? true : this._filtersArePristine();
   }
 
   // --- parte della lista ---
-  
+
   _buildMetaFragment(el) {
     const frag = document.createDocumentFragment();
     const distance = (typeof el.distanceKm === 'number' && isFinite(el.distanceKm))
@@ -287,12 +297,11 @@ export default class HomeView {
 
   // --- Metodi privati di comodo
 
-  #navbarLogoutEvent(){
+  #navbarLogoutEvent() {
     // Navbar: Logout event
-    const links = Array.from(document.querySelectorAll('.navbar-nav .nav-link'));
-    const logoutLink = links.find(a => (a.textContent || '').trim().toLowerCase().includes('logout')) || null;
-    if (logoutLink) {
-      logoutLink.addEventListener('click', (e) => {
+    const logoutBtn = document.getElementById('navLogoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         // Prefer controller logout when available
         if (this.controller && typeof this.controller.logout === 'function') {
@@ -304,12 +313,11 @@ export default class HomeView {
     }
   }
 
-  #navbarAreaPersonaleEvent(){
+  #navbarAreaPersonaleEvent() {
     // Navbar: Area Personale event
-    const links = Array.from(document.querySelectorAll('.navbar-nav .nav-link'));
-    const areaPersonaleLink = links.find(a => (a.textContent || '').trim().toLowerCase().includes('profil')) || null;
-    if (areaPersonaleLink) {
-      areaPersonaleLink.addEventListener('click', (e) => {
+    const areaPersonaleBtn = document.getElementById('navProfileBtn');
+    if (areaPersonaleBtn) {
+      areaPersonaleBtn.addEventListener('click', (e) => {
         e.preventDefault();
         if (this.router && typeof this.router.navigate === 'function') {
           this.router.navigate('/profilo');
@@ -320,7 +328,7 @@ export default class HomeView {
     }
   }
 
-  updateMessage(element, message){
-      element.innerText = message;
+  updateMessage(element, message) {
+    element.innerText = message;
   }
 }

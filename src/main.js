@@ -1,13 +1,13 @@
 import Router from "./router/Router.js";
 import LoginView from "./view/LoginView.js";
-import LoginController from "./controller/LoginController.js";
+import LoginPresenter from "./presenter/LoginPresenter.js";
 import HomeView from "./view/HomeView.js";
 import GenericHomeView from "./view/GenericHomeView.js";
-import HomeController from "./controller/HomeController.js";
+import HomePresenter from "./presenter/HomePresenter.js";
 import ProfileView from "./view/ProfileView.js";
-import ProfiloController from "./controller/ProfileController.js";
+import ProfilePresenter from "./presenter/ProfilePresenter.js";
 import RegistrationView from "./view/RegistrationView.js";
-import RegistrationController from "./controller/RegistrationController.js";
+import RegistrationPresenter from "./presenter/RegistrationPresenter.js";
 import { auth, onAuthStateChanged } from "./services/firebase-config.js";
 
 export const router = new Router("app"); // <main id="app"></main> di index.html
@@ -21,7 +21,7 @@ router.addRoute("/home", {
     const view = new HomeView();
     view.router = routerInstance;
     // collega controller MVC
-    const controller = new HomeController(view);
+    const controller = new HomePresenter(view);
     controller.router = routerInstance;
     view.controller = controller;
     return view;
@@ -32,29 +32,29 @@ router.addRoute("/home", {
 router.addRoute("/", {
   html: "pages/home.html",
   css: ["CSS/home.css"],
-    view: (routerInstance) => {
-      const view = new GenericHomeView();
-      view.router = routerInstance;
-      // Ensure controller receives the view instance so controller.view is set
-      const controller = new HomeController(view);
-      controller.router = routerInstance;
-      view.controller = controller;
-      return view;
-    }
+  view: (routerInstance) => {
+    const view = new GenericHomeView();
+    view.router = routerInstance;
+    // Ensure controller receives the view instance so controller.view is set
+    const controller = new HomePresenter(view);
+    controller.router = routerInstance;
+    view.controller = controller;
+    return view;
+  }
 });
 
 //Rotta di login
 router.addRoute("/login", {
   html: "pages/login.html",
   css: ["CSS/login.css"],
-    view: (routerInstance) => {
-      const view = new LoginView();
-      view.router = routerInstance;
-      const controller = new LoginController();
-      controller.router = routerInstance;
-      view.controller = controller;
-      return view;
-    }
+  view: (routerInstance) => {
+    const view = new LoginView();
+    view.router = routerInstance;
+    const controller = new LoginPresenter();
+    controller.router = routerInstance;
+    view.controller = controller;
+    return view;
+  }
 });
 
 //Rotta di profilo
@@ -64,7 +64,7 @@ router.addRoute("/profilo", {
   view: (routerInstance) => {
     const view = new ProfileView();
     view.router = routerInstance;
-    const controller = new ProfiloController();
+    const controller = new ProfilePresenter();
     controller.router = routerInstance;
     controller.view = view;
     view.controller = controller;
@@ -79,7 +79,7 @@ router.addRoute("/registrazione", {
   view: (routerInstance) => {
     const view = new RegistrationView();
     view.router = routerInstance;
-    const controller = new RegistrationController();
+    const controller = new RegistrationPresenter();
     controller.router = routerInstance;
     view.controller = controller;
     return view;

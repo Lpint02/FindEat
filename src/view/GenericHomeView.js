@@ -12,23 +12,33 @@ export default class GenericHomeView extends HomeView {
     async init() {
         console.log('GenericHomeView initialized');
 
-        // Recupera tutti i link della navbar
-        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
-        navLinks.forEach(link => {
-            if (link.textContent.trim() === "Logout" || link.textContent.trim() === "Profilo") {
-                link.remove();
-            }
-        });
+        // Rimuovi bottoni "Profilo" e "Logout" per utente non loggato
+        const profileBtn = document.getElementById('navProfileBtn');
+        const logoutBtn = document.getElementById('navLogoutBtn');
+        if (profileBtn) profileBtn.remove();
+        if (logoutBtn) logoutBtn.remove();
 
-        // Aggiungi il bottone Login
-        const navbarNav = document.querySelector('.navbar-nav');
-        if (navbarNav) {
+        // Aggiungi il bottone "Login" se non esiste
+        const navbarActions = document.querySelector('.navbar-actions');
+        if (navbarActions && !document.getElementById('navLoginBtn')) {
             const loginBtn = document.createElement('a');
-            loginBtn.className = 'nav-link';
-            loginBtn.textContent = 'Login';
-            loginBtn.id = 'loginBtn';
+            // Stile bottone primario verde pisello per richiamare subito l'attenzione
+            loginBtn.className = 'nav-btn nav-btn-primary'; 
+            loginBtn.id = 'navLoginBtn';
             loginBtn.style.cursor = 'pointer';
-            navbarNav.appendChild(loginBtn);
+            
+            // Icona di user-login da abbinare al nuovo stile
+            loginBtn.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </svg>
+              Login
+            `;
+            
+            navbarActions.appendChild(loginBtn);
+            
             loginBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.router.navigate("/login");

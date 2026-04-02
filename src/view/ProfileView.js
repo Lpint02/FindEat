@@ -1,4 +1,4 @@
-import ProfileController from "../controller/ProfileController.js";
+import ProfilePresenter from "../presenter/ProfilePresenter.js";
 
 export default class ProfileView {
 
@@ -35,18 +35,16 @@ export default class ProfileView {
         this.controller.loadLikedRestaurant();
 
         // Evento click sul link "Home" nella navbar
-        const homeLink = [...document.querySelectorAll('.navbar-nav .nav-link')].find(el => el.textContent.trim() === 'Home');
-        if (homeLink) {
+        const homeBtn = document.getElementById('homeButton');
+        if (homeBtn) {
             console.log("Home link trovato, aggiungo event listener");
-            homeLink.addEventListener('click', (e) => {
-                console.log("Home link cliccato");
+            homeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (this.router) {
-                    this.router.navigate("/home");
-                } else {
-                    console.error("Router non definito in ProfileView");
-                }
+                console.log("Navigo verso la home");
+                this.router.navigate('/home');
             });
+        } else {
+            console.log("Home link non trovato");
         }
 
         // Evento modifica foto profilo
@@ -195,16 +193,33 @@ export default class ProfileView {
     //metodo chiamato dal controller per disegnare il carosello dei ristoranti preferiti
     displayLikedRestaurant(restaurants) {
         const container = document.getElementById('Conteiner_del_carosello');
-        const carouselInner = container.querySelector('.carousel-inner');
-        const template = document.getElementById('carousel-item-template');
-
-        // Svuota il contenitore
-        carouselInner.innerHTML = '';
+        if (!container) return;
 
         if (!restaurants || restaurants.length === 0) {
             this.noLikedRestaurant();
             return;
         }
+
+        // Se la struttura base è stata piallata da "noLikedRestaurant", la ricreo.
+        if (!container.querySelector('.carousel-inner')) {
+            container.innerHTML = `
+                <div class="carousel-inner"></div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#Conteiner_del_carosello" data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Precedente</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#Conteiner_del_carosello" data-bs-slide="next">
+                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Successivo</span>
+                </button>
+            `;
+        }
+
+        const carouselInner = container.querySelector('.carousel-inner');
+        const template = document.getElementById('carousel-item-template');
+
+        // Svuota il contenitore
+        carouselInner.innerHTML = '';
 
         restaurants.forEach((rest, index) => {
             // Clona il template

@@ -4,7 +4,7 @@ import User from '../model/User.js';
 import Review from '../model/Review.js';
 import AuthService from '../services/AuthService.js';
 
-export default class ProfiloController {
+export default class ProfilePresenter {
     constructor() {
         this.firestore = new FirestoreService();
         this.view = null;
@@ -71,7 +71,7 @@ export default class ProfiloController {
             return { esito: false };
         }
     }
- 
+
     // metodo per impostare la foto profilo nell'interfaccia
     setUserProfilePhoto() {
         const userPhoto = localStorage.getItem('userPhoto');
@@ -84,47 +84,47 @@ export default class ProfiloController {
             console.log("Nessuna foto profilo trovata");
         }
     }
-    
+
     // metodo per modificare la foto profilo
     async editUserProfilePhoto(file) {
-    if (!file) return;
+        if (!file) return;
 
-    const reader = new FileReader();
+        const reader = new FileReader();
 
-    reader.onload = async (e) => {
-        const imageData = e.target.result;
+        reader.onload = async (e) => {
+            const imageData = e.target.result;
 
-        // Aggiorna immagine nel DOM
-        const img = document.getElementById('profile-avatar');
-        img.src = imageData;
+            // Aggiorna immagine nel DOM
+            const img = document.getElementById('profile-avatar');
+            img.src = imageData;
 
-        // Salva localmente
-        localStorage.setItem('userPhoto', JSON.stringify(imageData));
-        console.log("Foto profilo aggiornata!");
+            // Salva localmente
+            localStorage.setItem('userPhoto', JSON.stringify(imageData));
+            console.log("Foto profilo aggiornata!");
 
-        // Aggiorna anche su Firestore
-        await this.updateUserPhotoInFirestore(imageData);
-    };
-    reader.readAsDataURL(file);
+            // Aggiorna anche su Firestore
+            await this.updateUserPhotoInFirestore(imageData);
+        };
+        reader.readAsDataURL(file);
     }
-  
+
     // metodo per eliminare la foto profilo
     async deleteUserProfilePhoto() {
-    const user = auth.currentUser;
-    if (!user) return;
+        const user = auth.currentUser;
+        if (!user) return;
 
-    // Ripristina immagine di default
-    const img = document.getElementById('profile-avatar');
-    img.src = "../images/person-circle.svg"; // Usa il tuo path immagine di default
+        // Ripristina immagine di default
+        const img = document.getElementById('profile-avatar');
+        img.src = "../images/person-circle.svg"; // Usa il tuo path immagine di default
 
-    // Rimuovi da localStorage
-    localStorage.removeItem('userPhoto');
+        // Rimuovi da localStorage
+        localStorage.removeItem('userPhoto');
 
-    // 🔹 Aggiorna Firestore (photo: null)
-    await this.updateUserPhotoInFirestore(null);
+        // 🔹 Aggiorna Firestore (photo: null)
+        await this.updateUserPhotoInFirestore(null);
 
-    console.log("Foto profilo eliminata");
-   }
+        console.log("Foto profilo eliminata");
+    }
 
     // Metodo per aggiornare la foto profilo su Firestore
     async updateUserPhotoInFirestore(photoData) {
@@ -197,19 +197,16 @@ export default class ProfiloController {
         const user = auth.currentUser;
         const result = await this.firestore.deleteById('User', user.uid);
 
-        if(result)
-        {
+        if (result) {
             // Elimino l'utente da Firebase Authentication
             let result_delete_aut = await AuthService.deleteUser();
-            
-            if(result_delete_aut)
-            {
+
+            if (result_delete_aut) {
                 // Pulisco la sessione
                 localStorage.clear();
                 this.router.navigate("/");
             }
-            else
-            {
+            else {
                 console.error("Errore eliminando l'utente da AuthService");
             }
         }
@@ -220,43 +217,36 @@ export default class ProfiloController {
         const userID = await this.fetchUserID();
         if (!userID) return [];
         let result = await this.firestore.findLikedRestaurant(userID);
-        if(result) 
-        {
-            console.log("Risultati:",result);
+        if (result) {
+            console.log("Risultati:", result);
             this.view.displayLikedRestaurant(result);
         }
-        else
-        {
+        else {
             console.log("Nessun risultato ottenuto dai like");
             this.view.noLikedRestaurant();
         }
     }
 
     //metodo per togliere like al ritorante
-    async unlikeRestaurant(restaurantID)
-    {
+    async unlikeRestaurant(restaurantID) {
         const userID = await this.fetchUserID();
         let result = await this.firestore.removeLikedRestaurant(userID, restaurantID);
-        if(result)
-        {
+        if (result) {
             await this.loadLikedRestaurant();
         }
-        else
-        {
+        else {
             console.warn("Errore durante la rimozione del like");
         }
     }
 
     // metodo per eliminare le recensioni dell'utente
-    async deleteReview(review){
+    async deleteReview(review) {
         let result = await this.firestore.deleteById('Reviews', review.firestoreId);
-        if(result)
-        {
+        if (result) {
             await this.loadUserReviews();
             console.log("Recensione eliminata con successo");
         }
-        else
-        {
+        else {
             console.error("Errore eliminando la recensione");
         }
     }

@@ -16,7 +16,7 @@ import { auth } from "../services/firebase-config.js";
  * HomeController: coordina la schermata Home
  * @param {HomeView} view - Istanza della View associata
  */
-export default class HomeController {
+export default class HomePresenter {
   constructor(view) {
     this.view = view; // Istanza della View (HomeView) con cui comunichiamo per aggiornare l'interfaccia
     this.geo = new GeolocationService();
@@ -57,6 +57,20 @@ export default class HomeController {
     } finally {
       if (mapSpinner) mapSpinner.classList.add('hidden');
       if (leftSpinner) leftSpinner.classList.add('hidden');
+    }
+  }
+
+  async logout() {
+    try {
+      if (AuthService && typeof AuthService.logout === 'function') {
+        const success = await AuthService.logout();
+        if (success) {
+          console.log("Logged out successfully da HomePresenter");
+          // L'onAuthStateChanged in main.js dovrebbe scattare e reindirizzare a /
+        }
+      }
+    } catch (e) {
+      console.error("Errore durante il logout", e);
     }
   }
 
@@ -355,11 +369,15 @@ export default class HomeController {
     } catch (e) { /* ignore */ }
 
     const restaurants = await this._loadRestaurants(lat, lon, radius, statusDiv);
+    // Nascondi spinner prima di gestire risultati vuoti
+    if (mapSpinner) mapSpinner.classList.add('hidden');
+    if (leftSpinner) leftSpinner.classList.add('hidden');
     if (!Array.isArray(restaurants) || restaurants.length === 0) {
-      if (statusDiv) this.view.updateMessage(statusDiv, "😔 Nessun ristorante trovato.");
+      if (statusDiv) this.view.updateMessage(statusDiv, "😔 Nessun ristorante trovato nell'area.");
+      this.view.renderMapRestaurants([], () => {});
+      this.view.renderList([], () => {});
       return;
     }
-    if (statusDiv) this.view.updateMessage(statusDiv, `🍽️ Trovati ${restaurants.length} ristoranti!`);
     // Annotiamo e filtriamo la lista in memoria in base a liked/reviewed attivi
     for (const r of restaurants) {
       try {
@@ -372,10 +390,9 @@ export default class HomeController {
     let renderList = restaurants;
     if (this._filters.liked) renderList = renderList.filter(r => r.isLiked);
     if (this._filters.reviewed) renderList = renderList.filter(r => r.isReviewed);
+    if (statusDiv) this.view.updateMessage(statusDiv, `🍽️ Trovati ${renderList.length} ristoranti!`);
     this.view.renderMapRestaurants(renderList, (payload) => this.handleMarkerClick(payload));
     this.view.renderList(renderList, (el) => this.onListSelect(el));
-    if (mapSpinner) mapSpinner.classList.add('hidden');
-    if (leftSpinner) leftSpinner.classList.add('hidden');
   }
 
   /**
@@ -387,7 +404,7 @@ export default class HomeController {
    * @return {Array<Restaurant>} - Elenco di ristoranti caricati
   */
   async _loadRestaurants(lat, lon, radius, statusDiv) {
-    // Richiama Overpass per ottenere i POI ristorante, calcola distanza e ordina per prossimità.
+    // Richiama Overpass per ottenere i POI ristorante, calcola distanza, filtra per raggio e ordina.
     // Usa AbortController per evitare race condition se l'utente cambia rapidamente i filtri/raggio.
     try {
       // Cancella eventuali richieste precedenti in corso
@@ -398,9 +415,12 @@ export default class HomeController {
       const elements = await this.overpass.fetchRestaurants(lat, lon, radius, { signal: this._abortController.signal });
       const list = elements.map(Restaurant.fromOverpass);
       for (const r of list) r.computeDistance(lat, lon);
-      list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
-      this._restaurants = list;
-      return list;
+      // Filtro distanza lato client: Overpass può restituire elementi fuori dal raggio esatto
+      const radiusKm = radius / 1000;
+      const filtered = list.filter(r => (r.distanceKm ?? Infinity) <= radiusKm);
+      filtered.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+      this._restaurants = filtered;
+      return filtered;
     } catch (loadErr) {
       console.error('HomeController: errore caricando i ristoranti', loadErr);
       if (statusDiv) this.view.updateMessage(statusDiv, '⚠️ Errore caricando i dati dei ristoranti.');
@@ -548,8 +568,35 @@ export default class HomeController {
   * @param {Object} el - Ristorante selezionato dalla lista
   */
   onListSelect(el) {
-    // Dalla lista, selezione di un ristorante: chiediamo alla View di selezionare il marker corrispondente sulla mappa
-    this.view.selectOnMapById(el.id);
+    // Estrai coordinate e nome
+    const lat = el.lat ?? el.location?.lat;
+    const lon = el.lon ?? el.location?.lng ?? el.location?.lon;
+    const name = el.name || el.tags?.name;
+
+    // Evidenzia visivamente il marker sulla mappa (senza fire('click') che causerebbe un doppio handleMarkerClick)
+    if (this.view?.mapView) {
+      const marker = this.view.mapView.markers.get(el.id);
+      if (marker) {
+        // Ripristina il marker precedente
+        if (this.view.mapView.selectedMarker && this.view.mapView.selectedMarker !== marker) {
+          try { this.view.mapView.selectedMarker.setIcon(this.view.mapView.defaultIcon); } catch(e) {}
+        }
+        try { marker.setIcon(this.view.mapView.selectedIcon); } catch(e) {}
+        this.view.mapView.selectedMarker = marker;
+        // Centra la mappa sul marker
+        if (lat != null && lon != null && this.view.mapView.map) {
+          this.view.mapView.map.setView([lat, lon], Math.max(this.view.mapView.map.getZoom(), 16));
+        }
+      }
+    }
+
+    // Apre il pannello dettagli
+    if (lat != null && lon != null) {
+      this.handleMarkerClick({ el, location: { lat, lon }, fallbackName: name });
+    } else {
+      console.warn('onListSelect: coordinate mancanti per', el);
+      this.onMarkerSelected({ data: null, fallbackName: name, el });
+    }
   }
 
   /**

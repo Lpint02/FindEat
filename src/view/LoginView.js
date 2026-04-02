@@ -1,10 +1,9 @@
-import LoginController from "../controller/LoginController.js";
+import LoginPresenter from "../presenter/LoginPresenter.js";
 
-export default class LoginView 
-{
+export default class LoginView {
   //costruttore
   constructor() {
-    this.controller = new LoginController();
+    this.controller = new LoginPresenter();
     this.router = null;    // sarà assegnato da main.js
   }
 
@@ -16,8 +15,8 @@ export default class LoginView
     // Aggancia il form di login
     const form = document.querySelector('form');
     if (form) {
-        form.addEventListener('submit', (e) => {
-          e.preventDefault();
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
         const email = document.getElementById('typeEmailX').value;
         const password = document.getElementById('typePasswordX').value;
         if (this.controller && typeof this.controller.handleLogin === 'function') {

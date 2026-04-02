@@ -1,11 +1,11 @@
 import AuthService from "../services/AuthService.js";
 
-export default class LoginController {
+export default class LoginPresenter {
 
   constructor() {
-        this.view = null;
-        this.router = null;
-    }
+    this.view = null;
+    this.router = null;
+  }
 
   async handleLogin(email, password) {
     console.log("Tentativo di login con:", email, password);
