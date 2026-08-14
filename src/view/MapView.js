@@ -143,9 +143,11 @@ export default class MapView {
     }
 
     // Gestisce la selezione di un marker
-    _onSelectMarker({ data, fallbackName, el, location }, externalSelect) {
+    _onSelectMarker({ data, fallbackName, el, location, marker }, externalSelect) {
         // Ripristina il marker selezionato in precedenza (se diverso dal nuovo)
-        const selMarker = this.markers.get(el.id);
+        // Usa il marker cliccato direttamente: this.markers può usare una chiave sintetica
+        // (per elementi senza id) diversa da el.id, quindi non va ricercata per el.id.
+        const selMarker = marker;
         if (this.selectedMarker && this.selectedMarker !== selMarker) {
             try { this.selectedMarker.setIcon(this.defaultIcon); } catch(e) { /* ignore */ }
         }
@@ -165,14 +167,14 @@ export default class MapView {
         if (!map || !window.L) return;
         const lat = el.lat;
         const lon = el.lon;
-        if (!lat || !lon) return;
+        if (lat == null || lon == null) return;
         const marker = L.marker([lat, lon], { icon: this.defaultIcon }).addTo(map);
         const tooltipHtml = this._buildPopupHtml(el.tags || {});
         marker.bindTooltip(tooltipHtml, { direction: 'top', offset: [0, -6], opacity: 0.95 });
         marker.on('click', () => {
             const name = el.name || el.tags?.name || null;
             if (!name) return alert('Nessun nome per questo ristorante.');
-            if (onSelect) onSelect({ el, location: { lat, lon }, fallbackName: name });
+            if (onSelect) onSelect({ el, location: { lat, lon }, fallbackName: name, marker });
         });
         return marker;
     }

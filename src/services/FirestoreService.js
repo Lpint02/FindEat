@@ -167,7 +167,8 @@ export default class FirestoreService {
                 rating: data.rating || null,
                 price_level: data.price_level ?? null,
                 address: data.formatted_address || "Indirizzo non disponibile",
-                phone_number: data.international_phone_number || "Telefono non disponibile"
+                phone_number: data.international_phone_number || "Telefono non disponibile",
+                photo_url: Array.isArray(data.photos) && data.photos.length > 0 ? data.photos[0] : null
             });
         });
     }
@@ -229,7 +230,7 @@ export default class FirestoreService {
 
     const db = getDb();
     const userRef = doc(db, "User", userID);
-    const restaurantRef = doc(db, "Restaurants", restaurantID);
+    const restaurantRef = doc(db, "Restaurant", restaurantID);
 
     try {
       // Aggiorna l'utente

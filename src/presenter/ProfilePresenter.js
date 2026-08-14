@@ -188,7 +188,7 @@ export default class ProfilePresenter {
             console.error('ID Firestore della review mancante!');
             return;
         }
-        await this.firestore.saveById('Reviews', review.firestoreId, { ...review });
+        await this.firestore.saveById('Reviews', review.firestoreId, review.toFirestorePayload());
         await this.loadUserReviews();
     }
 
@@ -217,7 +217,7 @@ export default class ProfilePresenter {
         const userID = await this.fetchUserID();
         if (!userID) return [];
         let result = await this.firestore.findLikedRestaurant(userID);
-        if (result) {
+        if (result && result.length > 0) {
             console.log("Risultati:", result);
             this.view.displayLikedRestaurant(result);
         }

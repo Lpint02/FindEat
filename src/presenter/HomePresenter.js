@@ -60,20 +60,6 @@ export default class HomePresenter {
     }
   }
 
-  async logout() {
-    try {
-      if (AuthService && typeof AuthService.logout === 'function') {
-        const success = await AuthService.logout();
-        if (success) {
-          console.log("Logged out successfully da HomePresenter");
-          // L'onAuthStateChanged in main.js dovrebbe scattare e reindirizzare a /
-        }
-      }
-    } catch (e) {
-      console.error("Errore durante il logout", e);
-    }
-  }
-
   // Helper: esegue l'intera sequenza di bootstrap (geolocalizzazione, mappa, firebase, caricamento ristoranti, render)
   async _bootstrapHome(statusDiv, mapSpinner, leftSpinner) {
     if (statusDiv) this.view.updateMessage(statusDiv, "📍 Recupero la tua posizione...");
@@ -556,7 +542,7 @@ export default class HomePresenter {
       delivery: place?.delivery ?? false,
       dine_in: place?.dine_in ?? false,
       takeout: place?.takeout ?? false,
-      wheelchair_accessible_entrance: place?.wheelchair_accessibile_entrance ?? false,
+      wheelchair_accessible_entrance: place?.wheelchair_accessible_entrance ?? false,
       photos: photos || [],
       location: { lat, lng: lon },
       savedAt: new Date().toISOString()
